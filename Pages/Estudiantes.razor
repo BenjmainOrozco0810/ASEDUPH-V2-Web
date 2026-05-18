@@ -1,0 +1,344 @@
+@page "/estudiantes"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject EstudianteService EstudianteService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using MudBlazor
+
+<PageTitle>Estudiantes - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Estudiantes
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Gestión de estudiantes registrados en ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Estudiante
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por nombre, municipio o departamento..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      FullWidth="true"
+                      Immediate="true" />
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla de estudiantes -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!estudiantesFiltrados.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.People"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron estudiantes
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@estudiantesFiltrados"
+                      Hover="true"
+                      Striped="true"
+                      Dense="false"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Nombre Completo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Sexo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Edad</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Municipio</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Departamento</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD;
+                                              color:#1565C0;
+                                              width:36px; height:36px;
+                                              font-size:0.9rem;"
+                                       Class="mr-3">
+                                @context.NombreCompleto.Substring(0, 1).ToUpper()
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @context.NombreCompleto
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Sexo ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Edad?.ToString() ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Municipio ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Departamento ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Style="@(context.Estado == "Activo"
+                                     ? "background-color:#E8F5E9; color:#2E7D32;"
+                                     : "background-color:#FFEBEE; color:#C62828;")">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))"
+                                       Title="Editar" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => ConfirmarDesactivar(context))"
+                                       Title="Desactivar" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog / Formulario -->
+<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nuevo Estudiante" : "Editar Estudiante")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="estudianteForm.NombreCompleto"
+                              Label="Nombre completo"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="estudianteForm.Sexo"
+                           Label="Sexo"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Femenino")">Femenino</MudSelectItem>
+                    <MudSelectItem Value="@("Masculino")">Masculino</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="estudianteForm.Edad"
+                                 Label="Edad"
+                                 Variant="Variant.Outlined"
+                                 Min="1" Max="99"
+                                 T="int?"
+                                 FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="estudianteForm.FechaNacimiento"
+                               Label="Fecha de nacimiento"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                               FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="estudianteForm.Municipio"
+                              Label="Municipio"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="estudianteForm.Departamento"
+                              Label="Departamento"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="estudianteForm.Direccion"
+                              Label="Dirección"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              FullWidth="true" />
+            </MudItem>
+            @if (!esNuevo)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="estudianteForm.Estado"
+                               Label="Estado"
+                               Variant="Variant.Outlined"
+                               FullWidth="true">
+                        <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                        <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarEstudiante"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Estudiante> estudiantes = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private Estudiante estudianteForm = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<Estudiante> estudiantesFiltrados => string.IsNullOrWhiteSpace(busqueda)
+        ? estudiantes
+        : estudiantes.Where(e =>
+            e.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+            (e.Municipio?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (e.Departamento?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEstudiantes();
+    }
+
+    private async Task CargarEstudiantes()
+    {
+        cargando = true;
+        estudiantes = await EstudianteService.GetEstudiantes();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        estudianteForm = new Estudiante { Estado = "Activo" };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(Estudiante estudiante)
+    {
+        esNuevo = false;
+        estudianteForm = new Estudiante
+        {
+            EstudianteId = estudiante.EstudianteId,
+            NombreCompleto = estudiante.NombreCompleto,
+            Sexo = estudiante.Sexo,
+            FechaNacimiento = estudiante.FechaNacimiento,
+            Edad = estudiante.Edad,
+            Direccion = estudiante.Direccion,
+            Municipio = estudiante.Municipio,
+            Departamento = estudiante.Departamento,
+            Estado = estudiante.Estado
+        };
+        mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        estudianteForm = new();
+    }
+
+    private async Task GuardarEstudiante()
+    {
+        if (string.IsNullOrWhiteSpace(estudianteForm.NombreCompleto))
+        {
+            Snackbar.Add("El nombre del estudiante es requerido.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+        {
+            resultado = await EstudianteService.CrearEstudiante(estudianteForm);
+        }
+        else
+        {
+            resultado = await EstudianteService.ActualizarEstudiante(
+                estudianteForm.EstudianteId, estudianteForm);
+        }
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarEstudiantes();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task ConfirmarDesactivar(Estudiante estudiante)
+    {
+        var resp = await EstudianteService.DesactivarEstudiante(estudiante.EstudianteId);
+        if (resp.exito)
+        {
+            Snackbar.Add(resp.mensaje, Severity.Success);
+            await CargarEstudiantes();
+        }
+        else
+        {
+            Snackbar.Add(resp.mensaje, Severity.Error);
+        }
+    }
+}

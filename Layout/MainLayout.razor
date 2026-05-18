@@ -1,16 +1,196 @@
-﻿@inherits LayoutComponentBase
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+@inherits LayoutComponentBase
+@using ASEDUPH_V2_Web.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+@if (AuthService.EstaAutenticado)
+{
+    <MudLayout>
+        <MudAppBar Elevation="2" Color="Color.Primary" Dense="false">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="ToggleDrawer" />
+            <MudText Typo="Typo.h6" Class="ml-2" Style="font-weight:600; letter-spacing:0.5px;">
+                ASEDUPH
+            </MudText>
+            <MudText Typo="Typo.body2" Class="ml-2" Style="opacity:0.8;">
+                | Sistema de Gestión de Becas
+            </MudText>
+            <MudSpacer />
+            <MudText Typo="Typo.body2"
+                     Style="color:white; opacity:0.9;"
+                     Class="mr-2">
+                @AuthService.UsuarioActual?.NombreCompleto
+            </MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Logout"
+                           Color="Color.Inherit"
+                           OnClick="CerrarSesion"
+                           Class="ml-2" />
+        </MudAppBar>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+        <MudDrawer @bind-Open="drawerAbierto"
+                   Elevation="3"
+                   ClipMode="DrawerClipMode.Always"
+                   Color="Color.Dark"
+                   Variant="DrawerVariant.Persistent">
+            <MudDrawerHeader Style="background-color:#0D47A1; padding:16px;">
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.School"
+                             Style="color:#90CAF9; font-size:2rem;" Class="mr-2" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1"
+                                 Style="color:white; font-weight:700;">ASEDUPH</MudText>
+                        <MudText Typo="Typo.caption"
+                                 Style="color:#90CAF9;">Becas Educativas</MudText>
+                    </div>
+                </div>
+            </MudDrawerHeader>
+
+            <MudNavMenu Color="Color.Primary" Style="padding-top:8px;">
+
+                <MudNavLink Href="/"
+                            Match="NavLinkMatch.All"
+                            Icon="@Icons.Material.Filled.Dashboard"
+                            Style="color:white;">
+                    Dashboard
+                </MudNavLink>
+
+                <MudDivider Style="background-color:rgba(255,255,255,0.1); margin:8px 0;" />
+                <MudText Typo="Typo.caption"
+                         Style="color:#90CAF9; padding:4px 16px;">GESTIÓN</MudText>
+
+                <MudNavGroup Title="Estudiantes"
+                             Icon="@Icons.Material.Filled.School"
+                             Style="color:white;"
+                             Expanded="false">
+                    <MudNavLink Href="/estudiantes"
+                                Icon="@Icons.Material.Filled.People"
+                                Style="color:white;">
+                        Estudiantes
+                    </MudNavLink>
+                    <MudNavLink Href="/encargados"
+                                Icon="@Icons.Material.Filled.Person"
+                                Style="color:white;">
+                        Encargados
+                    </MudNavLink>
+                </MudNavGroup>
+
+                <MudNavGroup Title="Solicitudes"
+                             Icon="@Icons.Material.Filled.Assignment"
+                             Style="color:white;"
+                             Expanded="false">
+                    <MudNavLink Href="/solicitudes"
+                                Icon="@Icons.Material.Filled.Description"
+                                Style="color:white;">
+                        Solicitudes de Beca
+                    </MudNavLink>
+                    <MudNavLink Href="/visitas"
+                                Icon="@Icons.Material.Filled.Home"
+                                Style="color:white;">
+                        Visitas Familiares
+                    </MudNavLink>
+                    <MudNavLink Href="/evaluaciones"
+                                Icon="@Icons.Material.Filled.RateReview"
+                                Style="color:white;">
+                        Evaluaciones
+                    </MudNavLink>
+                </MudNavGroup>
+
+                <MudNavGroup Title="Becas"
+                             Icon="@Icons.Material.Filled.CardGiftcard"
+                             Style="color:white;"
+                             Expanded="false">
+                    <MudNavLink Href="/becas"
+                                Icon="@Icons.Material.Filled.Star"
+                                Style="color:white;">
+                        Becas Activas
+                    </MudNavLink>
+                    <MudNavLink Href="/renovaciones"
+                                Icon="@Icons.Material.Filled.Refresh"
+                                Style="color:white;">
+                        Renovaciones
+                    </MudNavLink>
+                    <MudNavLink Href="/seguimiento"
+                                Icon="@Icons.Material.Filled.TrendingUp"
+                                Style="color:white;">
+                        Seguimiento Académico
+                    </MudNavLink>
+                </MudNavGroup>
+
+                <MudDivider Style="background-color:rgba(255,255,255,0.1); margin:8px 0;" />
+                <MudText Typo="Typo.caption"
+                         Style="color:#90CAF9; padding:4px 16px;">FINANCIERO</MudText>
+
+                <MudNavGroup Title="Financiero"
+                             Icon="@Icons.Material.Filled.AttachMoney"
+                             Style="color:white;"
+                             Expanded="false">
+                    <MudNavLink Href="/benefactores"
+                                Icon="@Icons.Material.Filled.Favorite"
+                                Style="color:white;">
+                        Benefactores
+                    </MudNavLink>
+                    <MudNavLink Href="/aportes"
+                                Icon="@Icons.Material.Filled.Payment"
+                                Style="color:white;">
+                        Aportes
+                    </MudNavLink>
+                </MudNavGroup>
+
+                @if (AuthService.TieneRol("Administrador"))
+                {
+                    <MudDivider Style="background-color:rgba(255,255,255,0.1); margin:8px 0;" />
+                    <MudText Typo="Typo.caption"
+                             Style="color:#90CAF9; padding:4px 16px;">ADMINISTRACIÓN</MudText>
+
+                    <MudNavGroup Title="Administración"
+                                 Icon="@Icons.Material.Filled.Settings"
+                                 Style="color:white;"
+                                 Expanded="false">
+                        <MudNavLink Href="/usuarios"
+                                    Icon="@Icons.Material.Filled.ManageAccounts"
+                                    Style="color:white;">
+                            Usuarios
+                        </MudNavLink>
+                        <MudNavLink Href="/centros-educativos"
+                                    Icon="@Icons.Material.Filled.AccountBalance"
+                                    Style="color:white;">
+                            Centros Educativos
+                        </MudNavLink>
+                        <MudNavLink Href="/tipos-apoyo"
+                                    Icon="@Icons.Material.Filled.Category"
+                                    Style="color:white;">
+                            Tipos de Apoyo
+                        </MudNavLink>
+                    </MudNavGroup>
+                }
+            </MudNavMenu>
+        </MudDrawer>
+
+        <MudMainContent Style="background-color:#F0F4F8; min-height:100vh;">
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-6">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
+else
+{
+    @Body
+}
+
+@code {
+    private bool drawerAbierto = true;
+
+    private void ToggleDrawer()
+    {
+        drawerAbierto = !drawerAbierto;
+    }
+
+    private async Task CerrarSesion()
+    {
+        await AuthService.Logout();
+        Navigation.NavigateTo("/login");
+    }
+}

@@ -1,0 +1,438 @@
+@page "/solicitud"
+@using System.Net.Http.Json
+@using ASEDUPH_V2_Web.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Solicitud de Beca - ASEDUPH</PageTitle>
+
+<!-- Header público -->
+<MudAppBar Elevation="2" Style="background-color:#1565C0;" Fixed="false">
+    <MudIcon Icon="@Icons.Material.Filled.School"
+             Style="color:white; font-size:2rem;" Class="mr-2" />
+    <MudText Typo="Typo.h6" Style="color:white; font-weight:700;">
+        ASEDUPH - Formulario de Solicitud de Beca
+    </MudText>
+</MudAppBar>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6 mb-10">
+
+    @if (enviado)
+    {
+        <!-- Confirmación de envío -->
+        <MudCard Elevation="4" Style="border-radius:12px;">
+            <MudCardContent Class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                         Style="color:#2E7D32; font-size:5rem;" Class="mb-4" />
+                <MudText Typo="Typo.h5" Style="color:#2E7D32; font-weight:700;" Class="mb-2">
+                    ¡Solicitud enviada correctamente!
+                </MudText>
+                <MudText Typo="Typo.body1" Style="color:#546E7A;" Class="mb-6">
+                    Hemos recibido tu solicitud de beca. Nos pondremos en contacto
+                    contigo a la brevedad posible.
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                    Puedes cerrar esta ventana.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+    }
+    else
+    {
+        <!-- Encabezado del formulario -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;
+                                       border-top: 5px solid #1565C0;">
+            <MudCardContent Class="pa-6">
+                <div class="d-flex align-center mb-2">
+                    <MudIcon Icon="@Icons.Material.Filled.Info"
+                             Style="color:#1565C0;" Class="mr-2" />
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+                        Formulario de Aplicación a Beca
+                    </MudText>
+                </div>
+                <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                    Complete todos los campos con información verídica.
+                    ASEDUPH evaluará su solicitud y se comunicará con usted.
+                </MudText>
+            </MudCardContent>
+        </MudCard>
+
+        @if (!string.IsNullOrEmpty(errorMensaje))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@errorMensaje</MudAlert>
+        }
+
+        <!-- Nivel educativo -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:600;"
+                         Class="mb-4">
+                    Nivel educativo para el que aplica a beca
+                </MudText>
+                <MudSelect @bind-Value="formulario.NivelEducativo"
+                           Label="Nivel educativo"
+                           Variant="Variant.Outlined"
+                           AnchorOrigin="Origin.BottomLeft"
+                           TransformOrigin="Origin.TopLeft">
+                    <MudSelectItem Value="@("Preprimaria")">Preprimaria</MudSelectItem>
+                    <MudSelectItem Value="@("Primaria")">Primaria</MudSelectItem>
+                    <MudSelectItem Value="@("Básicos")">Básicos</MudSelectItem>
+                    <MudSelectItem Value="@("Diversificado")">Diversificado</MudSelectItem>
+                    <MudSelectItem Value="@("Universidad")">Universidad</MudSelectItem>
+                </MudSelect>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Sección 1: Datos del estudiante -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:600;"
+                         Class="mb-4">
+                    1. Datos personales del estudiante
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="formulario.NombreCompleto"
+                                      Label="Nombre completo del estudiante"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="formulario.Sexo"
+                                   Label="Sexo"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomLeft"
+                                   TransformOrigin="Origin.TopLeft">
+                            <MudSelectItem Value="@("Femenino")">Femenino</MudSelectItem>
+                            <MudSelectItem Value="@("Masculino")">Masculino</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="formulario.Edad"
+                                         Label="Edad"
+                                         Variant="Variant.Outlined"
+                                         Min="1" Max="99" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudDatePicker @bind-Date="formulario.FechaNacimiento"
+                                       Label="Fecha de nacimiento"
+                                       Variant="Variant.Outlined"
+                                       DateFormat="dd/MM/yyyy" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.Municipio"
+                                      Label="Municipio"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.Departamento"
+                                      Label="Departamento"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.CentroEducativo"
+                                      Label="Centro educativo actual"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.GradoSolicitado"
+                                      Label="Grado"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="formulario.PromedioActual"
+                                         Label="Promedio actual"
+                                         Variant="Variant.Outlined"
+                                         Min="0" Max="100" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="formulario.Direccion"
+                                      Label="Dirección de la vivienda"
+                                      Variant="Variant.Outlined"
+                                      Lines="2" />
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Sección 2: Datos del encargado -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:600;"
+                         Class="mb-4">
+                    2. Datos del encargado
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="formulario.NombreEncargado"
+                                      Label="Nombre completo del encargado"
+                                      Variant="Variant.Outlined"
+                                      Required="true" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudSelect @bind-Value="formulario.EstadoCivil"
+                                   Label="Estado civil"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomLeft"
+                                   TransformOrigin="Origin.TopLeft">
+                            <MudSelectItem Value="@("Soltero/a")">Soltero/a</MudSelectItem>
+                            <MudSelectItem Value="@("Casado/a")">Casado/a</MudSelectItem>
+                            <MudSelectItem Value="@("Unido/a")">Unido/a</MudSelectItem>
+                            <MudSelectItem Value="@("Divorciado/a")">Divorciado/a</MudSelectItem>
+                            <MudSelectItem Value="@("Viudo/a")">Viudo/a</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.DPI"
+                                      Label="No. DPI"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.DpiExtendido"
+                                      Label="Extendido en"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.TelefonoDomiciliar"
+                                      Label="Teléfono domiciliar"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.TelefonoCelular"
+                                      Label="Teléfono celular"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.CorreoElectronico"
+                                      Label="Correo electrónico"
+                                      Variant="Variant.Outlined"
+                                      InputType="InputType.Email" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="formulario.DireccionEncargado"
+                                      Label="Dirección"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.Ocupacion"
+                                      Label="Ocupación / Oficio"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.LugarTrabajo"
+                                      Label="Lugar de trabajo"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="formulario.TelefonoTrabajo"
+                                      Label="Teléfono del trabajo"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Sección 3: Motivo -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:600;"
+                         Class="mb-4">
+                    3. Motivos por los que necesita apoyo
+                </MudText>
+                <MudTextField @bind-Value="formulario.MotivoSolicitud"
+                              Label="Explique brevemente su situación"
+                              Variant="Variant.Outlined"
+                              Lines="5"
+                              FullWidth="true" />
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Sección 4: Tipo de apoyo -->
+        <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+            <MudCardContent Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:600;"
+                         Class="mb-4">
+                    4. Tipo de apoyo necesario
+                </MudText>
+                <MudCheckBox @bind-Value="formulario.ApoyoCuotas"
+                             Label="Apoyo económico para cubrir cuotas de estudio"
+                             Color="Color.Primary" />
+                <MudCheckBox @bind-Value="formulario.ApoyoUtiles"
+                             Label="Apoyo para útiles escolares y materiales de estudio"
+                             Color="Color.Primary" />
+                <MudCheckBox @bind-Value="formulario.ApoyoUniformes"
+                             Label="Apoyo para uniformes y otros implementos como zapatos"
+                             Color="Color.Primary" />
+                <MudTextField @bind-Value="formulario.OtroApoyo"
+                              Label="Otro tipo de apoyo (especifique)"
+                              Variant="Variant.Outlined"
+                              Class="mt-3" />
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Botón enviar -->
+        <MudButton Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   FullWidth="true"
+                   Size="Size.Large"
+                   OnClick="EnviarSolicitud"
+                   Disabled="@enviando">
+            @if (enviando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Enviando solicitud...</span>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Send" Class="mr-2" />
+                <span>Enviar Solicitud</span>
+            }
+        </MudButton>
+
+        <MudText Typo="Typo.caption" Style="color:#546E7A;" Class="d-flex justify-center mt-4">
+            Asociación para la Educación Padre José Halpin |
+            becasjosehalpin@gmail.com
+        </MudText>
+    }
+</MudContainer>
+
+@code {
+    private FormularioPublicoRequest formulario = new();
+    private bool enviando = false;
+    private bool enviado = false;
+    private string errorMensaje = string.Empty;
+
+    private async Task EnviarSolicitud()
+    {
+        errorMensaje = string.Empty;
+
+        // Validaciones básicas
+        if (string.IsNullOrWhiteSpace(formulario.NombreCompleto))
+        {
+            errorMensaje = "El nombre del estudiante es requerido.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formulario.NombreEncargado))
+        {
+            errorMensaje = "El nombre del encargado es requerido.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(formulario.MotivoSolicitud))
+        {
+            errorMensaje = "Por favor explique los motivos de su solicitud.";
+            return;
+        }
+
+        enviando = true;
+
+        try
+        {
+            // 1. Crear el estudiante
+            var estudiante = new
+            {
+                EstudianteId = 0,
+                NombreCompleto = formulario.NombreCompleto,
+                Sexo = formulario.Sexo,
+                FechaNacimiento = formulario.FechaNacimiento,
+                Edad = formulario.Edad,
+                Direccion = formulario.Direccion,
+                Municipio = formulario.Municipio,
+                Departamento = formulario.Departamento,
+                Estado = "Activo"
+            };
+
+            var respEstudiante = await Http.PostAsJsonAsync("api/Estudiantes/publico", estudiante);
+
+            if (!respEstudiante.IsSuccessStatusCode)
+            {
+                errorMensaje = "Error al registrar los datos del estudiante.";
+                enviando = false;
+                return;
+            }
+
+            var resultEstudiante = await respEstudiante.Content
+                .ReadFromJsonAsync<RespuestaConId>();
+
+            if (resultEstudiante == null)
+            {
+                errorMensaje = "Error al procesar la respuesta del servidor.";
+                enviando = false;
+                return;
+            }
+
+            int estudianteId = resultEstudiante.EstudianteId;
+
+            // 2. Crear el encargado
+            var encargado = new
+            {
+                EncargadoId = 0,
+                EstudianteId = estudianteId,
+                NombreCompleto = formulario.NombreEncargado,
+                Parentesco = "Encargado",
+                EstadoCivil = formulario.EstadoCivil,
+                DPI = formulario.DPI,
+                DpiExtendido = formulario.DpiExtendido,
+                TelefonoDomiciliar = formulario.TelefonoDomiciliar,
+                TelefonoCelular = formulario.TelefonoCelular,
+                CorreoElectronico = formulario.CorreoElectronico,
+                Direccion = formulario.DireccionEncargado,
+                Ocupacion = formulario.Ocupacion,
+                LugarTrabajo = formulario.LugarTrabajo,
+                TelefonoTrabajo = formulario.TelefonoTrabajo,
+                Estado = "Activo"
+            };
+
+            await Http.PostAsJsonAsync("api/Encargados", encargado);
+
+            // 3. Crear la solicitud de beca
+            var tiposApoyo = new List<string>();
+            if (formulario.ApoyoCuotas) tiposApoyo.Add("Apoyo económico para cuotas de estudio");
+            if (formulario.ApoyoUtiles) tiposApoyo.Add("Útiles escolares");
+            if (formulario.ApoyoUniformes) tiposApoyo.Add("Uniformes y zapatos");
+            if (!string.IsNullOrWhiteSpace(formulario.OtroApoyo))
+                tiposApoyo.Add(formulario.OtroApoyo);
+
+            var solicitud = new
+            {
+                SolicitudBecaId = 0,
+                EstudianteId = estudianteId,
+                AnioSolicitud = DateTime.Now.Year,
+                NivelEducativo = formulario.NivelEducativo,
+                GradoSolicitado = formulario.GradoSolicitado,
+                PromedioActual = formulario.PromedioActual,
+                MotivoSolicitud = formulario.MotivoSolicitud,
+                EstadoSolicitud = "Pendiente",
+                FechaSolicitud = DateTime.Now,
+                NombrePersonaCompletaFormulario = formulario.NombreEncargado,
+                FechaFormulario = DateTime.Now,
+                Observaciones = string.Join(", ", tiposApoyo)
+            };
+
+            var respSolicitud = await Http.PostAsJsonAsync("api/SolicitudesBeca/publica", solicitud);
+
+            if (respSolicitud.IsSuccessStatusCode)
+            {
+                enviado = true;
+            }
+            else
+            {
+                errorMensaje = "Error al enviar la solicitud. Por favor intente de nuevo.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = "Error de conexión. Verifique su internet e intente de nuevo.";
+            Console.WriteLine(ex.Message);
+        }
+
+        enviando = false;
+    }
+
+    private class RespuestaConId
+    {
+        public int EstudianteId { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
+    }
+}

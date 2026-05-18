@@ -1,0 +1,329 @@
+@page "/benefactores"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject BenefactorService BenefactorService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Benefactores - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Benefactores
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Ángeles por la educación — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Benefactor
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por nombre, correo o tipo..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Immediate="true"
+                      FullWidth="true" />
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!benefactoresFiltrados.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.Favorite"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron benefactores
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@benefactoresFiltrados"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Nombre</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Tipo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Teléfono</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Correo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:36px; height:36px; font-size:0.9rem;"
+                                       Class="mr-3">
+                                @context.NombreCompleto.Substring(0, 1).ToUpper()
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @context.NombreCompleto
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="background-color:#E3F2FD; color:#1565C0;">
+                            @(context.TipoBenefactor ?? "--")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Telefono ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.CorreoElectronico ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(context.Estado == "Activo"
+                                     ? "background-color:#E8F5E9; color:#2E7D32;"
+                                     : "background-color:#FFEBEE; color:#C62828;")">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Payment"
+                                       Style="color:#2E7D32;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => VerAportes(context))"
+                                       Title="Ver aportes" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => DesactivarBenefactor(context))"
+                                       Title="Desactivar" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario Benefactor -->
+<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nuevo Benefactor" : "Editar Benefactor")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="benefactorForm.NombreCompleto"
+                              Label="Nombre completo"
+                              Variant="Variant.Outlined"
+                              Required="true"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="benefactorForm.TipoBenefactor"
+                           Label="Tipo de benefactor"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Padrino")">Padrino</MudSelectItem>
+                    <MudSelectItem Value="@("Donante")">Donante</MudSelectItem>
+                    <MudSelectItem Value="@("Voluntario")">Voluntario</MudSelectItem>
+                    <MudSelectItem Value="@("Empresa")">Empresa</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="benefactorForm.Telefono"
+                              Label="Teléfono"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="benefactorForm.CorreoElectronico"
+                              Label="Correo electrónico"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                @if (!esNuevo)
+                {
+                    <MudSelect @bind-Value="benefactorForm.Estado"
+                               Label="Estado"
+                               Variant="Variant.Outlined"
+                               FullWidth="true">
+                        <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                        <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                    </MudSelect>
+                }
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="benefactorForm.Direccion"
+                              Label="Dirección"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              FullWidth="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarBenefactor"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Benefactor> benefactores = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private Benefactor benefactorForm = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<Benefactor> benefactoresFiltrados => benefactores.Where(b =>
+        string.IsNullOrWhiteSpace(busqueda) ||
+        b.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+        (b.CorreoElectronico?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (b.TipoBenefactor?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarBenefactores();
+    }
+
+    private async Task CargarBenefactores()
+    {
+        cargando = true;
+        benefactores = await BenefactorService.GetBenefactores();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        benefactorForm = new Benefactor { Estado = "Activo" };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(Benefactor benefactor)
+    {
+        esNuevo = false;
+        benefactorForm = new Benefactor
+        {
+            BenefactorId = benefactor.BenefactorId,
+            NombreCompleto = benefactor.NombreCompleto,
+            Telefono = benefactor.Telefono,
+            CorreoElectronico = benefactor.CorreoElectronico,
+            Direccion = benefactor.Direccion,
+            TipoBenefactor = benefactor.TipoBenefactor,
+            Estado = benefactor.Estado
+        };
+        mostrarFormulario = true;
+    }
+
+    private void VerAportes(Benefactor benefactor)
+    {
+        Navigation.NavigateTo($"/aportes/{benefactor.BenefactorId}");
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        benefactorForm = new();
+    }
+
+    private async Task GuardarBenefactor()
+    {
+        if (string.IsNullOrWhiteSpace(benefactorForm.NombreCompleto))
+        {
+            Snackbar.Add("El nombre del benefactor es requerido.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+            resultado = await BenefactorService.CrearBenefactor(benefactorForm);
+        else
+            resultado = await BenefactorService.ActualizarBenefactor(
+                benefactorForm.BenefactorId, benefactorForm);
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarBenefactores();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task DesactivarBenefactor(Benefactor benefactor)
+    {
+        var resultado = await BenefactorService.DesactivarBenefactor(benefactor.BenefactorId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarBenefactores();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+}

@@ -1,6 +1,68 @@
-﻿<Router AppAssembly="@typeof(App).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+@using ASEDUPH_V2_Web.Services
+@using MudBlazor
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<MudThemeProvider Theme="@temaAseduph" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />   
+
+<Router AppAssembly="@typeof(App).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)"/>
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
         <FocusOnNavigate RouteData="@routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Página no encontrada</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <MudText Typo="Typo.h5">La página que buscas no existe.</MudText>
+        </LayoutView>
+    </NotFound>
 </Router>
+
+@code {
+    // Rutas que NO requieren login
+    private readonly string[] rutasPublicas = { "/login", "/solicitud" };
+
+    private MudTheme temaAseduph = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1565C0",
+            PrimaryDarken = "#0D47A1",
+            PrimaryLighten = "#1976D2",
+            Secondary = "#1E88E5",
+            SecondaryDarken = "#1565C0",
+            SecondaryLighten = "#42A5F5",
+            Tertiary = "#0288D1",
+            Background = "#F0F4F8",
+            BackgroundGray = "#E3EDF7",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#1565C0",
+            AppbarText = "#FFFFFF",
+            DrawerBackground = "#0D47A1",
+            DrawerText = "#FFFFFF",
+            DrawerIcon = "#90CAF9",
+            TextPrimary = "#1A237E",
+            TextSecondary = "#546E7A",
+            Success = "#2E7D32",
+            Warning = "#F57C00",
+            Error = "#C62828",
+            Info = "#0277BD",
+        }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InicializarSesion();
+
+        var uri = new Uri(Navigation.Uri).AbsolutePath.ToLower();
+        var esPublica = rutasPublicas.Any(r => uri.StartsWith(r));
+
+        if (!AuthService.EstaAutenticado && !esPublica)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

@@ -1,0 +1,488 @@
+@page "/solicitudes"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject SolicitudBecaService SolicitudService
+@inject ISnackbar Snackbar
+
+<PageTitle>Solicitudes de Beca - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Solicitudes de Beca
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Gestión de solicitudes recibidas en ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.NoteAdd"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nueva Solicitud
+    </MudButton>
+</div>
+
+<!-- Filtros -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="busqueda"
+                              Placeholder="Buscar por nombre del estudiante..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Clearable="true"
+                              Immediate="true"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect @bind-Value="filtroEstado"
+                           Label="Filtrar por estado"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Clearable="true">
+                    <MudSelectItem Value="@("Pendiente")">Pendiente</MudSelectItem>
+                    <MudSelectItem Value="@("En Evaluación")">En Evaluación</MudSelectItem>
+                    <MudSelectItem Value="@("Aprobada")">Aprobada</MudSelectItem>
+                    <MudSelectItem Value="@("Rechazada")">Rechazada</MudSelectItem>
+                    <MudSelectItem Value="@("Cancelada")">Cancelada</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!solicitudesFiltradas.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron solicitudes
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@solicitudesFiltradas"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">#</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estudiante</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Año</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Nivel</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Grado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Promedio</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                            #@context.SolicitudBecaId
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:32px; height:32px; font-size:0.85rem;"
+                                       Class="mr-2">
+                                @(context.Estudiante?.NombreCompleto.Substring(0, 1).ToUpper() ?? "?")
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @(context.Estudiante?.NombreCompleto ?? "Sin nombre")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.AnioSolicitud</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.NivelEducativo ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.GradoSolicitado ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.PromedioActual?.ToString("F2") ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@GetEstadoStyle(context.EstadoSolicitud)">
+                            @context.EstadoSolicitud
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @context.FechaSolicitud.ToString("dd/MM/yyyy")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz"
+                                       Style="color:#F57C00;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirCambioEstado(context))"
+                                       Title="Cambiar estado" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Cancel"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => CancelarSolicitud(context))"
+                                       Title="Cancelar" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario -->
+<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nueva Solicitud de Beca" : "Editar Solicitud")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="solicitudForm.EstudianteId"
+                           Label="Estudiante"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Required="true">
+                    @foreach (var e in estudiantes)
+                    {
+                        <MudSelectItem Value="@e.EstudianteId">@e.NombreCompleto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="solicitudForm.CentroEducativoId"
+                           Label="Centro Educativo"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    @foreach (var c in centros)
+                    {
+                        <MudSelectItem Value="@((int?)c.CentroEducativoId)">@c.Nombre</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="solicitudForm.AnioSolicitud"
+                                 Label="Año de solicitud"
+                                 Variant="Variant.Outlined"
+                                 Min="2000" Max="2100"
+                                 T="int"
+                                 FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="solicitudForm.NivelEducativo"
+                           Label="Nivel educativo"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Preprimaria")">Preprimaria</MudSelectItem>
+                    <MudSelectItem Value="@("Primaria")">Primaria</MudSelectItem>
+                    <MudSelectItem Value="@("Básicos")">Básicos</MudSelectItem>
+                    <MudSelectItem Value="@("Diversificado")">Diversificado</MudSelectItem>
+                    <MudSelectItem Value="@("Universidad")">Universidad</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="solicitudForm.GradoSolicitado"
+                              Label="Grado solicitado"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="solicitudForm.PromedioActual"
+                                 Label="Promedio actual"
+                                 Variant="Variant.Outlined"
+                                 Min="0" Max="100"
+                                 T="decimal?"
+                                 FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="solicitudForm.MotivoSolicitud"
+                              Label="Motivo de la solicitud"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="solicitudForm.NombrePersonaCompletaFormulario"
+                              Label="Persona que completa el formulario"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="solicitudForm.FechaFormulario"
+                               Label="Fecha del formulario"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                               FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="solicitudForm.Observaciones"
+                              Label="Observaciones"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              FullWidth="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarSolicitud"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Dialog Cambio de Estado -->
+<MudDialog @bind-IsVisible="mostrarCambioEstado" Options="dialogEstadoOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            Cambiar Estado de Solicitud
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4" Style="color:#546E7A;">
+            Solicitud de: <b>@solicitudSeleccionada?.Estudiante?.NombreCompleto</b>
+        </MudText>
+        <MudSelect @bind-Value="nuevoEstado"
+                   Label="Nuevo estado"
+                   Variant="Variant.Outlined"
+                   FullWidth="true">
+            <MudSelectItem Value="@("Pendiente")">Pendiente</MudSelectItem>
+            <MudSelectItem Value="@("En Evaluación")">En Evaluación</MudSelectItem>
+            <MudSelectItem Value="@("Aprobada")">Aprobada</MudSelectItem>
+            <MudSelectItem Value="@("Rechazada")">Rechazada</MudSelectItem>
+            <MudSelectItem Value="@("Cancelada")">Cancelada</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => mostrarCambioEstado = false)"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarCambioEstado"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<SolicitudBeca> solicitudes = new();
+    private List<Estudiante> estudiantes = new();
+    private List<CentroEducativo> centros = new();
+    private string busqueda = string.Empty;
+    private string? filtroEstado;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool mostrarCambioEstado = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private SolicitudBeca solicitudForm = new();
+    private SolicitudBeca? solicitudSeleccionada;
+    private string nuevoEstado = string.Empty;
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private DialogOptions dialogEstadoOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<SolicitudBeca> solicitudesFiltradas => solicitudes.Where(s =>
+        (string.IsNullOrWhiteSpace(busqueda) ||
+         (s.Estudiante?.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (string.IsNullOrWhiteSpace(filtroEstado) || s.EstadoSolicitud == filtroEstado));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        solicitudes = await SolicitudService.GetSolicitudes();
+        estudiantes = await SolicitudService.GetEstudiantes();
+        centros = await SolicitudService.GetCentrosEducativos();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        solicitudForm = new SolicitudBeca
+        {
+            AnioSolicitud = DateTime.Now.Year,
+            FechaSolicitud = DateTime.Now,
+            EstadoSolicitud = "Pendiente"
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(SolicitudBeca solicitud)
+    {
+        esNuevo = false;
+        solicitudForm = new SolicitudBeca
+        {
+            SolicitudBecaId = solicitud.SolicitudBecaId,
+            EstudianteId = solicitud.EstudianteId,
+            CentroEducativoId = solicitud.CentroEducativoId,
+            AnioSolicitud = solicitud.AnioSolicitud,
+            NivelEducativo = solicitud.NivelEducativo,
+            GradoSolicitado = solicitud.GradoSolicitado,
+            PromedioActual = solicitud.PromedioActual,
+            MotivoSolicitud = solicitud.MotivoSolicitud,
+            EstadoSolicitud = solicitud.EstadoSolicitud,
+            FechaSolicitud = solicitud.FechaSolicitud,
+            NombrePersonaCompletaFormulario = solicitud.NombrePersonaCompletaFormulario,
+            FechaFormulario = solicitud.FechaFormulario,
+            Observaciones = solicitud.Observaciones
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirCambioEstado(SolicitudBeca solicitud)
+    {
+        solicitudSeleccionada = solicitud;
+        nuevoEstado = solicitud.EstadoSolicitud;
+        mostrarCambioEstado = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        solicitudForm = new();
+    }
+
+    private async Task GuardarSolicitud()
+    {
+        if (solicitudForm.EstudianteId == 0)
+        {
+            Snackbar.Add("Debe seleccionar un estudiante.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+        {
+            solicitudForm.FechaSolicitud = DateTime.Now;
+            resultado = await SolicitudService.CrearSolicitud(solicitudForm);
+        }
+        else
+        {
+            resultado = await SolicitudService.ActualizarSolicitud(
+                solicitudForm.SolicitudBecaId, solicitudForm);
+        }
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task GuardarCambioEstado()
+    {
+        if (solicitudSeleccionada == null) return;
+
+        var resultado = await SolicitudService.CambiarEstado(
+            solicitudSeleccionada.SolicitudBecaId, nuevoEstado);
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            mostrarCambioEstado = false;
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task CancelarSolicitud(SolicitudBeca solicitud)
+    {
+        var resultado = await SolicitudService.CancelarSolicitud(solicitud.SolicitudBecaId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private string GetEstadoStyle(string estado) => estado switch
+    {
+        "Pendiente" => "background-color:#FFF8E1; color:#F57C00;",
+        "En Evaluación" => "background-color:#E3F2FD; color:#1565C0;",
+        "Aprobada" => "background-color:#E8F5E9; color:#2E7D32;",
+        "Rechazada" => "background-color:#FFEBEE; color:#C62828;",
+        "Cancelada" => "background-color:#F5F5F5; color:#546E7A;",
+        _ => "background-color:#F5F5F5; color:#546E7A;"
+    };
+}

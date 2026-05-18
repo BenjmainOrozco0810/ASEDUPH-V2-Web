@@ -1,0 +1,124 @@
+@page "/login"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard Elevation="4">
+        <MudCardContent>
+            <div class="d-flex justify-center mb-4">
+                <div class="text-center">
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-1">
+                        <b>ASEDUPH</b>
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Class="mb-4">
+                        Sistema de Gestión de Becas
+                    </MudText>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(errorMensaje))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@errorMensaje</MudAlert>
+            }
+
+            <MudTextField @bind-Value="loginRequest.Username"
+                          Label="Usuario"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Person"
+                          Class="mb-4"
+                          Disabled="@cargando" />
+
+            <MudTextField @bind-Value="loginRequest.Password"
+                          Label="Contraseña"
+                          Variant="Variant.Outlined"
+                          InputType="@passwordTipo"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@passwordIcono"
+                          OnAdornmentClick="TogglePassword"
+                          Class="mb-6"
+                          Disabled="@cargando" />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Size="Size.Large"
+                       OnClick="IniciarSesion"
+                       Disabled="@cargando">
+                @if (cargando)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Iniciando sesión...</span>
+                }
+                else
+                {
+                    <span>Iniciar Sesión</span>
+                }
+            </MudButton>
+        </MudCardContent>
+
+        <MudCardActions Class="justify-center pb-4">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                Asociación para la Educación Padre José Halpin
+            </MudText>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private string errorMensaje = string.Empty;
+    private bool cargando = false;
+    private InputType passwordTipo = InputType.Password;
+    private string passwordIcono = Icons.Material.Filled.VisibilityOff;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AuthService.InicializarSesion();
+        if (AuthService.EstaAutenticado)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task IniciarSesion()
+    {
+        errorMensaje = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(loginRequest.Username) ||
+            string.IsNullOrWhiteSpace(loginRequest.Password))
+        {
+            errorMensaje = "Por favor ingresa tu usuario y contraseña.";
+            return;
+        }
+
+        cargando = true;
+        var exito = await AuthService.Login(loginRequest);
+        cargando = false;
+
+        if (exito)
+        {
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            errorMensaje = "Usuario o contraseña incorrectos.";
+        }
+    }
+
+    private void TogglePassword()
+    {
+        if (passwordTipo == InputType.Password)
+        {
+            passwordTipo = InputType.Text;
+            passwordIcono = Icons.Material.Filled.Visibility;
+        }
+        else
+        {
+            passwordTipo = InputType.Password;
+            passwordIcono = Icons.Material.Filled.VisibilityOff;
+        }
+    }
+}

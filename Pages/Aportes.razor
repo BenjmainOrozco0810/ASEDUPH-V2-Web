@@ -1,0 +1,377 @@
+@page "/aportes"
+@page "/aportes/{BenefactorId:int}"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject BenefactorService BenefactorService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Aportes - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <div class="d-flex align-center mb-1">
+            @if (BenefactorId.HasValue)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                               Style="color:#1565C0;"
+                               OnClick="@(() => Navigation.NavigateTo("/benefactores"))"
+                               Size="Size.Small" />
+            }
+            <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+                @(benefactorActual != null ? $"Aportes de {benefactorActual.NombreCompleto}" : "Aportes")
+            </MudText>
+        </div>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Control de aportes económicos recibidos
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Aporte
+    </MudButton>
+</div>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!aportes.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.Payment"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron aportes
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@aportes"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Benefactor</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Monto</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Tipo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Forma de Pago</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Período</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Comprobante</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">
+                            @(context.Benefactor?.NombreCompleto ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @context.FechaAporte.ToString("dd/MM/yyyy")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="font-weight:700; color:#2E7D32;">
+                            Q @context.Monto.ToString("F2")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="background-color:#E3F2FD; color:#1565C0;">
+                            @(context.TipoAporte ?? "--")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.FormaPago ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Periodo ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.NumeroComprobante ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => EliminarAporte(context))"
+                                       Title="Eliminar" />
+                    </MudTd>
+                </RowTemplate>
+                <FooterContent>
+                    <MudTFootRow>
+                        <MudTd colspan="8">
+                            <div class="d-flex justify-end pa-3">
+                                <MudText Typo="Typo.subtitle1" Style="color:#1565C0; font-weight:700;">
+                                    Total: Q @aportes.Sum(a => a.Monto).ToString("F2")
+                                </MudText>
+                            </div>
+                        </MudTd>
+                    </MudTFootRow>
+                </FooterContent>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario -->
+<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nuevo Aporte" : "Editar Aporte")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="aporteForm.BenefactorId"
+                           Label="Benefactor"
+                           Variant="Variant.Outlined"
+                           FullWidth="true"
+                           Required="true">
+                    @foreach (var b in benefactores)
+                    {
+                        <MudSelectItem Value="@b.BenefactorId">@b.NombreCompleto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="fechaAporte"
+                               Label="Fecha del aporte"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                               FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="aporteForm.Monto"
+                                 Label="Monto (Q)"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 T="decimal"
+                                 FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="aporteForm.TipoAporte"
+                           Label="Tipo de aporte"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Económico")">Económico</MudSelectItem>
+                    <MudSelectItem Value="@("Útiles")">Útiles</MudSelectItem>
+                    <MudSelectItem Value="@("Uniformes")">Uniformes</MudSelectItem>
+                    <MudSelectItem Value="@("Zapatos")">Zapatos</MudSelectItem>
+                    <MudSelectItem Value="@("Alimentos")">Alimentos</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="aporteForm.FormaPago"
+                           Label="Forma de pago"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Efectivo")">Efectivo</MudSelectItem>
+                    <MudSelectItem Value="@("Transferencia")">Transferencia</MudSelectItem>
+                    <MudSelectItem Value="@("Depósito")">Depósito</MudSelectItem>
+                    <MudSelectItem Value="@("Cheque")">Cheque</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="aporteForm.Periodo"
+                           Label="Período"
+                           Variant="Variant.Outlined"
+                           FullWidth="true">
+                    <MudSelectItem Value="@("Mensual")">Mensual</MudSelectItem>
+                    <MudSelectItem Value="@("Semestral")">Semestral</MudSelectItem>
+                    <MudSelectItem Value="@("Anual")">Anual</MudSelectItem>
+                    <MudSelectItem Value="@("Único")">Único</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="aporteForm.NumeroComprobante"
+                              Label="Número de comprobante"
+                              Variant="Variant.Outlined"
+                              FullWidth="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="aporteForm.Observaciones"
+                              Label="Observaciones"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                              FullWidth="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarAporte"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Registrar" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [Parameter] public int? BenefactorId { get; set; }
+
+    private List<Aporte> aportes = new();
+    private List<Benefactor> benefactores = new();
+    private Benefactor? benefactorActual;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private Aporte aporteForm = new();
+    private DateTime? fechaAporte = DateTime.Now;
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        benefactores = await BenefactorService.GetBenefactores();
+
+        if (BenefactorId.HasValue)
+        {
+            benefactorActual = benefactores.FirstOrDefault(b => b.BenefactorId == BenefactorId.Value);
+            aportes = await BenefactorService.GetAportesPorBenefactor(BenefactorId.Value);
+        }
+        else
+        {
+            aportes = await BenefactorService.GetAportes();
+        }
+
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        fechaAporte = DateTime.Now;
+        aporteForm = new Aporte
+        {
+            BenefactorId = BenefactorId ?? 0,
+            FechaAporte = DateTime.Now
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(Aporte aporte)
+    {
+        esNuevo = false;
+        fechaAporte = aporte.FechaAporte;
+        aporteForm = new Aporte
+        {
+            AporteId = aporte.AporteId,
+            BenefactorId = aporte.BenefactorId,
+            BecaId = aporte.BecaId,
+            FechaAporte = aporte.FechaAporte,
+            Monto = aporte.Monto,
+            TipoAporte = aporte.TipoAporte,
+            FormaPago = aporte.FormaPago,
+            Periodo = aporte.Periodo,
+            NumeroComprobante = aporte.NumeroComprobante,
+            Observaciones = aporte.Observaciones
+        };
+        mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        aporteForm = new();
+    }
+
+    private async Task GuardarAporte()
+    {
+        if (aporteForm.BenefactorId == 0)
+        {
+            Snackbar.Add("Debe seleccionar un benefactor.", Severity.Warning);
+            return;
+        }
+
+        if (aporteForm.Monto <= 0)
+        {
+            Snackbar.Add("El monto debe ser mayor a 0.", Severity.Warning);
+            return;
+        }
+
+        aporteForm.FechaAporte = fechaAporte ?? DateTime.Now;
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+            resultado = await BenefactorService.CrearAporte(aporteForm);
+        else
+            resultado = await BenefactorService.ActualizarAporte(aporteForm.AporteId, aporteForm);
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task EliminarAporte(Aporte aporte)
+    {
+        var resultado = await BenefactorService.EliminarAporte(aporte.AporteId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+}
