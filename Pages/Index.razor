@@ -1,5 +1,10 @@
 @page "/"
+@using ASEDUPH_V2_Web.Models
 @using ASEDUPH_V2_Web.Services
+@inject EstudianteService EstudianteService
+@inject SolicitudBecaService SolicitudService
+@inject BecaService BecaService
+@inject BenefactorService BenefactorService
 @inject AuthService AuthService
 
 <PageTitle>Dashboard - ASEDUPH</PageTitle>
@@ -11,142 +16,287 @@
     Asociación para la Educación Padre José Halpin
 </MudText>
 
-<MudGrid>
-    <!-- Estudiantes -->
-    <MudItem xs="12" sm="6" md="3">
-        <MudCard Elevation="3" Style="border-top: 4px solid #1565C0; border-radius:8px;">
-            <MudCardContent>
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.overline" Style="color:#546E7A;">Estudiantes</MudText>
-                        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">--</MudText>
+@if (cargando)
+{
+    <div class="d-flex justify-center pa-10">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <!-- Tarjetas de contadores -->
+    <MudGrid>
+        <!-- Estudiantes -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #1565C0; border-radius:8px;">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.overline" Style="color:#546E7A;">
+                                Estudiantes
+                            </MudText>
+                            <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+                                @totalEstudiantes
+                            </MudText>
+                        </div>
+                        <MudAvatar Style="background-color:#E3F2FD; width:56px; height:56px;">
+                            <MudIcon Icon="@Icons.Material.Filled.People"
+                                     Style="color:#1565C0; font-size:2rem;" />
+                        </MudAvatar>
                     </div>
-                    <MudAvatar Style="background-color:#E3F2FD; width:56px; height:56px;">
-                        <MudIcon Icon="@Icons.Material.Filled.People"
-                                 Style="color:#1565C0; font-size:2rem;" />
-                    </MudAvatar>
-                </div>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/estudiantes" Variant="Variant.Text"
-                           Style="color:#1565C0;" Size="Size.Small">
-                    Ver todos →
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/estudiantes" Variant="Variant.Text"
+                               Style="color:#1565C0;" Size="Size.Small">
+                        Ver todos →
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
 
-    <!-- Solicitudes -->
-    <MudItem xs="12" sm="6" md="3">
-        <MudCard Elevation="3" Style="border-top: 4px solid #1976D2; border-radius:8px;">
-            <MudCardContent>
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.overline" Style="color:#546E7A;">Solicitudes</MudText>
-                        <MudText Typo="Typo.h4" Style="color:#1976D2; font-weight:700;">--</MudText>
+        <!-- Solicitudes Pendientes -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #1976D2; border-radius:8px;">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.overline" Style="color:#546E7A;">
+                                Solicitudes Pendientes
+                            </MudText>
+                            <MudText Typo="Typo.h4" Style="color:#1976D2; font-weight:700;">
+                                @solicitudesPendientes
+                            </MudText>
+                        </div>
+                        <MudAvatar Style="background-color:#E8EAF6; width:56px; height:56px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Assignment"
+                                     Style="color:#1976D2; font-size:2rem;" />
+                        </MudAvatar>
                     </div>
-                    <MudAvatar Style="background-color:#E8EAF6; width:56px; height:56px;">
-                        <MudIcon Icon="@Icons.Material.Filled.Assignment"
-                                 Style="color:#1976D2; font-size:2rem;" />
-                    </MudAvatar>
-                </div>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/solicitudes" Variant="Variant.Text"
-                           Style="color:#1976D2;" Size="Size.Small">
-                    Ver todas →
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/solicitudes" Variant="Variant.Text"
+                               Style="color:#1976D2;" Size="Size.Small">
+                        Ver todas →
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
 
-    <!-- Becas Activas -->
-    <MudItem xs="12" sm="6" md="3">
-        <MudCard Elevation="3" Style="border-top: 4px solid #0288D1; border-radius:8px;">
-            <MudCardContent>
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.overline" Style="color:#546E7A;">Becas Activas</MudText>
-                        <MudText Typo="Typo.h4" Style="color:#0288D1; font-weight:700;">--</MudText>
+        <!-- Becas Activas -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #0288D1; border-radius:8px;">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.overline" Style="color:#546E7A;">
+                                Becas Activas
+                            </MudText>
+                            <MudText Typo="Typo.h4" Style="color:#0288D1; font-weight:700;">
+                                @totalBecas
+                            </MudText>
+                        </div>
+                        <MudAvatar Style="background-color:#E1F5FE; width:56px; height:56px;">
+                            <MudIcon Icon="@Icons.Material.Filled.CardGiftcard"
+                                     Style="color:#0288D1; font-size:2rem;" />
+                        </MudAvatar>
                     </div>
-                    <MudAvatar Style="background-color:#E1F5FE; width:56px; height:56px;">
-                        <MudIcon Icon="@Icons.Material.Filled.CardGiftcard"
-                                 Style="color:#0288D1; font-size:2rem;" />
-                    </MudAvatar>
-                </div>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/becas" Variant="Variant.Text"
-                           Style="color:#0288D1;" Size="Size.Small">
-                    Ver todas →
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/becas" Variant="Variant.Text"
+                               Style="color:#0288D1;" Size="Size.Small">
+                        Ver todas →
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
 
-    <!-- Benefactores -->
-    <MudItem xs="12" sm="6" md="3">
-        <MudCard Elevation="3" Style="border-top: 4px solid #0277BD; border-radius:8px;">
-            <MudCardContent>
-                <div class="d-flex justify-space-between align-center">
-                    <div>
-                        <MudText Typo="Typo.overline" Style="color:#546E7A;">Benefactores</MudText>
-                        <MudText Typo="Typo.h4" Style="color:#0277BD; font-weight:700;">--</MudText>
+        <!-- Benefactores -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #0277BD; border-radius:8px;">
+                <MudCardContent>
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.overline" Style="color:#546E7A;">
+                                Benefactores
+                            </MudText>
+                            <MudText Typo="Typo.h4" Style="color:#0277BD; font-weight:700;">
+                                @totalBenefactores
+                            </MudText>
+                        </div>
+                        <MudAvatar Style="background-color:#E1F5FE; width:56px; height:56px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Favorite"
+                                     Style="color:#0277BD; font-size:2rem;" />
+                        </MudAvatar>
                     </div>
-                    <MudAvatar Style="background-color:#E1F5FE; width:56px; height:56px;">
-                        <MudIcon Icon="@Icons.Material.Filled.Favorite"
-                                 Style="color:#0277BD; font-size:2rem;" />
-                    </MudAvatar>
-                </div>
-            </MudCardContent>
-            <MudCardActions>
-                <MudButton Href="/benefactores" Variant="Variant.Text"
-                           Style="color:#0277BD;" Size="Size.Small">
-                    Ver todos →
-                </MudButton>
-            </MudCardActions>
-        </MudCard>
-    </MudItem>
-</MudGrid>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="/benefactores" Variant="Variant.Text"
+                               Style="color:#0277BD;" Size="Size.Small">
+                        Ver todos →
+                    </MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-<MudDivider Class="my-6" />
+    <MudDivider Class="my-6" />
 
-<MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
-    Accesos Rápidos
-</MudText>
+    <!-- Segunda fila: Resumen de solicitudes -->
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Solicitudes por Estado
+                    </MudText>
+                    <MudList T="string" Dense="true">
+                        <MudListItem>
+                            <div class="d-flex justify-space-between align-center">
+                                <div class="d-flex align-center">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Style="background-color:#FFF8E1; color:#F57C00;"
+                                             Class="mr-2">
+                                        Pendientes
+                                    </MudChip>
+                                </div>
+                                <MudText Typo="Typo.h6" Style="font-weight:700; color:#F57C00;">
+                                    @solicitudesPendientes
+                                </MudText>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <div class="d-flex justify-space-between align-center">
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="background-color:#E3F2FD; color:#1565C0;">
+                                    En Evaluación
+                                </MudChip>
+                                <MudText Typo="Typo.h6" Style="font-weight:700; color:#1565C0;">
+                                    @solicitudesEnEvaluacion
+                                </MudText>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <div class="d-flex justify-space-between align-center">
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="background-color:#E8F5E9; color:#2E7D32;">
+                                    Aprobadas
+                                </MudChip>
+                                <MudText Typo="Typo.h6" Style="font-weight:700; color:#2E7D32;">
+                                    @solicitudesAprobadas
+                                </MudText>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                        <MudListItem>
+                            <div class="d-flex justify-space-between align-center">
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="background-color:#FFEBEE; color:#C62828;">
+                                    Rechazadas
+                                </MudChip>
+                                <MudText Typo="Typo.h6" Style="font-weight:700; color:#C62828;">
+                                    @solicitudesRechazadas
+                                </MudText>
+                            </div>
+                        </MudListItem>
+                    </MudList>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
 
-<MudGrid>
-    <MudItem xs="12" sm="6" md="4">
-        <MudButton Href="/estudiantes"
-                   Variant="Variant.Outlined"
-                   FullWidth="true"
-                   Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.PersonAdd"
-                   Style="border-color:#1565C0; color:#1565C0;"
-                   Class="mb-2">
-            Nuevo Estudiante
-        </MudButton>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-        <MudButton Href="/solicitudes"
-                   Variant="Variant.Outlined"
-                   FullWidth="true"
-                   Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.NoteAdd"
-                   Style="border-color:#1976D2; color:#1976D2;"
-                   Class="mb-2">
-            Nueva Solicitud
-        </MudButton>
-    </MudItem>
-    <MudItem xs="12" sm="6" md="4">
-        <MudButton Href="/benefactores"
-                   Variant="Variant.Outlined"
-                   FullWidth="true"
-                   Size="Size.Large"
-                   StartIcon="@Icons.Material.Filled.PersonAdd"
-                   Style="border-color:#0277BD; color:#0277BD;"
-                   Class="mb-2">
-            Nuevo Benefactor
-        </MudButton>
-    </MudItem>
-</MudGrid>
+        <!-- Accesos rápidos -->
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent>
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Accesos Rápidos
+                    </MudText>
+                    <MudGrid>
+                        <MudItem xs="12">
+                            <MudButton Href="/estudiantes"
+                                       Variant="Variant.Outlined"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                                       Style="border-color:#1565C0; color:#1565C0;"
+                                       Class="mb-3">
+                                Nuevo Estudiante
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Href="/solicitudes"
+                                       Variant="Variant.Outlined"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.NoteAdd"
+                                       Style="border-color:#1976D2; color:#1976D2;"
+                                       Class="mb-3">
+                                Nueva Solicitud
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Href="/benefactores"
+                                       Variant="Variant.Outlined"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Favorite"
+                                       Style="border-color:#0277BD; color:#0277BD;"
+                                       Class="mb-3">
+                                Nuevo Benefactor
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudButton Href="/solicitud"
+                                       Target="_blank"
+                                       Variant="Variant.Filled"
+                                       FullWidth="true"
+                                       Size="Size.Large"
+                                       StartIcon="@Icons.Material.Filled.Link"
+                                       Style="background-color:#1565C0; color:white;">
+                                Formulario Público de Solicitud
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private int totalEstudiantes;
+    private int totalBecas;
+    private int totalBenefactores;
+    private int solicitudesPendientes;
+    private int solicitudesEnEvaluacion;
+    private int solicitudesAprobadas;
+    private int solicitudesRechazadas;
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarContadores();
+    }
+
+    private async Task CargarContadores()
+    {
+        cargando = true;
+
+        var estudiantes = await EstudianteService.GetEstudiantes();
+        var solicitudes = await SolicitudService.GetSolicitudes();
+        var becas = await BecaService.GetBecas();
+        var benefactores = await BenefactorService.GetBenefactores();
+
+        totalEstudiantes = estudiantes.Count;
+        totalBecas = becas.Count;
+        totalBenefactores = benefactores.Count;
+
+        solicitudesPendientes = solicitudes.Count(s => s.EstadoSolicitud == "Pendiente");
+        solicitudesEnEvaluacion = solicitudes.Count(s => s.EstadoSolicitud == "En Evaluación");
+        solicitudesAprobadas = solicitudes.Count(s => s.EstadoSolicitud == "Aprobada");
+        solicitudesRechazadas = solicitudes.Count(s => s.EstadoSolicitud == "Rechazada");
+
+        cargando = false;
+    }
+}
