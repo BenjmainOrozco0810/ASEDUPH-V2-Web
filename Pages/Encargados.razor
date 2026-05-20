@@ -1,0 +1,402 @@
+@page "/encargados"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject EncargadoService EncargadoService
+@inject ISnackbar Snackbar
+
+<PageTitle>Encargados - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Encargados
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Gestión de encargados de estudiantes — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Encargado
+    </MudButton>
+</div>
+
+<!-- Filtros -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="busqueda"
+                              Placeholder="Buscar por nombre, DPI o correo..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Clearable="true"
+                              Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect @bind-Value="filtroEstudiante"
+                           Label="Filtrar por estudiante"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           T="int?">
+                    @foreach (var e in estudiantes)
+                    {
+                        <MudSelectItem Value="@((int?)e.EstudianteId)">@e.NombreCompleto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!encargadosFiltrados.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.Person"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron encargados
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@encargadosFiltrados"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Nombre</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estudiante</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Parentesco</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Teléfono</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Correo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:36px; height:36px; font-size:0.9rem;"
+                                       Class="mr-3">
+                                @context.NombreCompleto.Substring(0, 1).ToUpper()
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @context.NombreCompleto
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.Estudiante?.NombreCompleto ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="background-color:#E3F2FD; color:#1565C0;">
+                            @(context.Parentesco ?? "--")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.TelefonoCelular ?? context.TelefonoDomiciliar ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.CorreoElectronico ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(context.Estado == "Activo"
+                                     ? "background-color:#E8F5E9; color:#2E7D32;"
+                                     : "background-color:#FFEBEE; color:#C62828;")">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => DesactivarEncargado(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario -->
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nuevo Encargado" : "Editar Encargado")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="encargadoForm.EstudianteId"
+                           Label="Estudiante"
+                           Variant="Variant.Outlined"
+                           Required="true">
+                    @foreach (var e in estudiantes)
+                    {
+                        <MudSelectItem Value="@e.EstudianteId">@e.NombreCompleto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.NombreCompleto"
+                              Label="Nombre completo"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="encargadoForm.Parentesco"
+                           Label="Parentesco"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Madre")">Madre</MudSelectItem>
+                    <MudSelectItem Value="@("Padre")">Padre</MudSelectItem>
+                    <MudSelectItem Value="@("Abuelo/a")">Abuelo/a</MudSelectItem>
+                    <MudSelectItem Value="@("Tío/a")">Tío/a</MudSelectItem>
+                    <MudSelectItem Value="@("Hermano/a")">Hermano/a</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="encargadoForm.EstadoCivil"
+                           Label="Estado civil"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Soltero/a")">Soltero/a</MudSelectItem>
+                    <MudSelectItem Value="@("Casado/a")">Casado/a</MudSelectItem>
+                    <MudSelectItem Value="@("Unido/a")">Unido/a</MudSelectItem>
+                    <MudSelectItem Value="@("Divorciado/a")">Divorciado/a</MudSelectItem>
+                    <MudSelectItem Value="@("Viudo/a")">Viudo/a</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.DPI"
+                              Label="No. DPI"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.TelefonoDomiciliar"
+                              Label="Teléfono domiciliar"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.TelefonoCelular"
+                              Label="Teléfono celular"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.CorreoElectronico"
+                              Label="Correo electrónico"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.Ocupacion"
+                              Label="Ocupación"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.LugarTrabajo"
+                              Label="Lugar de trabajo"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="encargadoForm.TelefonoTrabajo"
+                              Label="Teléfono de trabajo"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="encargadoForm.Direccion"
+                              Label="Dirección"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+            </MudItem>
+            @if (!esNuevo)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="encargadoForm.Estado"
+                               Label="Estado"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                        <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarEncargado"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Encargado> encargados = new();
+    private List<Estudiante> estudiantes = new();
+    private string busqueda = string.Empty;
+    private int? filtroEstudiante;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private Encargado encargadoForm = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<Encargado> encargadosFiltrados => encargados.Where(e =>
+        (string.IsNullOrWhiteSpace(busqueda) ||
+         e.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+         (e.DPI?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+         (e.CorreoElectronico?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (!filtroEstudiante.HasValue || e.EstudianteId == filtroEstudiante));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        encargados = await EncargadoService.GetEncargados();
+        estudiantes = await EncargadoService.GetEstudiantes();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        encargadoForm = new Encargado { Estado = "Activo" };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(Encargado encargado)
+    {
+        esNuevo = false;
+        encargadoForm = new Encargado
+        {
+            EncargadoId = encargado.EncargadoId,
+            EstudianteId = encargado.EstudianteId,
+            NombreCompleto = encargado.NombreCompleto,
+            Parentesco = encargado.Parentesco,
+            EstadoCivil = encargado.EstadoCivil,
+            DPI = encargado.DPI,
+            DpiExtendido = encargado.DpiExtendido,
+            TelefonoDomiciliar = encargado.TelefonoDomiciliar,
+            TelefonoCelular = encargado.TelefonoCelular,
+            CorreoElectronico = encargado.CorreoElectronico,
+            Direccion = encargado.Direccion,
+            Ocupacion = encargado.Ocupacion,
+            LugarTrabajo = encargado.LugarTrabajo,
+            TelefonoTrabajo = encargado.TelefonoTrabajo,
+            Estado = encargado.Estado
+        };
+        mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        encargadoForm = new();
+    }
+
+    private async Task GuardarEncargado()
+    {
+        if (string.IsNullOrWhiteSpace(encargadoForm.NombreCompleto))
+        {
+            Snackbar.Add("El nombre del encargado es requerido.", Severity.Warning);
+            return;
+        }
+
+        if (encargadoForm.EstudianteId == 0)
+        {
+            Snackbar.Add("Debe seleccionar un estudiante.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+            resultado = await EncargadoService.CrearEncargado(encargadoForm);
+        else
+            resultado = await EncargadoService.ActualizarEncargado(
+                encargadoForm.EncargadoId, encargadoForm);
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task DesactivarEncargado(Encargado encargado)
+    {
+        var resultado = await EncargadoService.DesactivarEncargado(encargado.EncargadoId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+}

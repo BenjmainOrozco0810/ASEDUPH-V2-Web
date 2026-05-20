@@ -29,6 +29,7 @@ builder.Services.AddMudServices(config =>
 // Servicios de la aplicación
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<EstudianteService>();
+builder.Services.AddScoped<EncargadoService>();
 builder.Services.AddScoped<SolicitudBecaService>();
 builder.Services.AddScoped<BecaService>();
 builder.Services.AddScoped<BenefactorService>();

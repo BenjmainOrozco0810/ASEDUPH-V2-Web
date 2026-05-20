@@ -1,28 +1,27 @@
-@page "/benefactores"
+@page "/centros-educativos"
 @using ASEDUPH_V2_Web.Models
-@using ASEDUPH_V2_Web.Services
-@inject BenefactorService BenefactorService
+@using System.Net.Http.Json
+@inject HttpClient Http
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
-<PageTitle>Benefactores - ASEDUPH</PageTitle>
+<PageTitle>Centros Educativos - ASEDUPH</PageTitle>
 
 <!-- Encabezado -->
 <div class="d-flex justify-space-between align-center mb-6">
     <div>
         <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
-            Benefactores
+            Centros Educativos
         </MudText>
         <MudText Typo="Typo.body2" Style="color:#546E7A;">
-            Ángeles por la educación — ASEDUPH
+            Gestión de centros educativos registrados — ASEDUPH
         </MudText>
     </div>
     <MudButton Variant="Variant.Filled"
                Style="background-color:#1565C0; color:white;"
-               StartIcon="@Icons.Material.Filled.PersonAdd"
+               StartIcon="@Icons.Material.Filled.Add"
                OnClick="AbrirFormularioNuevo"
                Size="Size.Large">
-        Nuevo Benefactor
+        Nuevo Centro
     </MudButton>
 </div>
 
@@ -30,7 +29,7 @@
 <MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
     <MudCardContent Class="pa-4">
         <MudTextField @bind-Value="busqueda"
-                      Placeholder="Buscar por nombre, correo o tipo..."
+                      Placeholder="Buscar por nombre o tipo..."
                       Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Variant="Variant.Outlined"
@@ -45,23 +44,22 @@
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
     </div>
 }
-else if (!benefactoresFiltrados.Any())
+else if (!centrosFiltrados.Any())
 {
     <MudCard Elevation="2" Style="border-radius:12px;">
         <MudCardContent Class="text-center pa-10">
-            <MudIcon Icon="@Icons.Material.Filled.Favorite"
+            <MudIcon Icon="@Icons.Material.Filled.AccountBalance"
                      Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
             <MudText Typo="Typo.h6" Style="color:#546E7A;">
-                No se encontraron benefactores
+                No se encontraron centros educativos
             </MudText>
         </MudCardContent>
     </MudCard>
 }
 else
 {
-    <!-- Tarjetas -->
     <MudGrid>
-        @foreach (var b in benefactoresFiltrados)
+        @foreach (var c in centrosFiltrados)
         {
             <MudItem xs="12" sm="6" md="4">
                 <MudCard Elevation="3" Style="border-radius:12px; border-top:4px solid #1565C0;">
@@ -70,15 +68,15 @@ else
                             <MudAvatar Style="background-color:#1565C0; color:white;
                                               width:48px; height:48px; font-size:1.2rem;"
                                        Class="mr-3">
-                                @b.NombreCompleto.Substring(0, 1).ToUpper()
+                                @c.Nombre.Substring(0, 1).ToUpper()
                             </MudAvatar>
                             <div>
                                 <MudText Typo="Typo.subtitle1" Style="font-weight:700; color:#1565C0;">
-                                    @b.NombreCompleto
+                                    @c.Nombre
                                 </MudText>
                                 <MudChip T="string" Size="Size.Small"
                                          Style="background-color:#E3F2FD; color:#1565C0;">
-                                    @(b.TipoBenefactor ?? "Sin tipo")
+                                    @(c.TipoCentro ?? "Sin tipo")
                                 </MudChip>
                             </div>
                         </div>
@@ -87,23 +85,23 @@ else
                             <MudIcon Icon="@Icons.Material.Filled.Phone"
                                      Style="color:#546E7A; font-size:1rem;" Class="mr-2" />
                             <MudText Typo="Typo.body2" Style="color:#546E7A;">
-                                @(b.Telefono ?? "Sin teléfono")
+                                @(c.Telefono ?? "Sin teléfono")
                             </MudText>
                         </div>
                         <div class="d-flex align-center mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Email"
+                            <MudIcon Icon="@Icons.Material.Filled.LocationOn"
                                      Style="color:#546E7A; font-size:1rem;" Class="mr-2" />
                             <MudText Typo="Typo.body2" Style="color:#546E7A;">
-                                @(b.CorreoElectronico ?? "Sin correo")
+                                @(c.Direccion ?? "Sin dirección")
                             </MudText>
                         </div>
                         <div class="d-flex align-center">
                             <MudIcon Icon="@Icons.Material.Filled.Circle"
-                                     Style="@($"color:{(b.Estado == "Activo" ? "#2E7D32" : "#C62828")}; font-size:0.7rem;")"
+                                     Style="@($"color:{(c.Estado == "Activo" ? "#2E7D32" : "#C62828")}; font-size:0.7rem;")"
                                      Class="mr-2" />
                             <MudText Typo="Typo.body2"
-                                     Style="@($"color:{(b.Estado == "Activo" ? "#2E7D32" : "#C62828")};")">
-                                @b.Estado
+                                     Style="@($"color:{(c.Estado == "Activo" ? "#2E7D32" : "#C62828")};")">
+                                @c.Estado
                             </MudText>
                         </div>
                     </MudCardContent>
@@ -111,19 +109,13 @@ else
                         <MudButton Variant="Variant.Text"
                                    Style="color:#1565C0;"
                                    StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="@(() => AbrirFormularioEditar(b))">
+                                   OnClick="@(() => AbrirFormularioEditar(c))">
                             Editar
-                        </MudButton>
-                        <MudButton Variant="Variant.Text"
-                                   Style="color:#2E7D32;"
-                                   StartIcon="@Icons.Material.Filled.Payment"
-                                   OnClick="@(() => Navigation.NavigateTo($"/aportes/{b.BenefactorId}"))">
-                            Aportes
                         </MudButton>
                         <MudSpacer />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Style="color:#C62828;" Size="Size.Small"
-                                       OnClick="@(() => DesactivarBenefactor(b))" />
+                                       OnClick="@(() => DesactivarCentro(c))" />
                     </MudCardActions>
                 </MudCard>
             </MudItem>
@@ -131,47 +123,46 @@ else
     </MudGrid>
 }
 
-<!-- Dialog Formulario -->
+<!-- Dialog -->
 <MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
-            @(esNuevo ? "Nuevo Benefactor" : "Editar Benefactor")
+            @(esNuevo ? "Nuevo Centro Educativo" : "Editar Centro Educativo")
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudGrid>
             <MudItem xs="12">
-                <MudTextField @bind-Value="benefactorForm.NombreCompleto"
-                              Label="Nombre completo"
+                <MudTextField @bind-Value="centroForm.Nombre"
+                              Label="Nombre del centro educativo"
                               Variant="Variant.Outlined"
                               Required="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="benefactorForm.TipoBenefactor"
-                           Label="Tipo de benefactor"
+                <MudSelect @bind-Value="centroForm.TipoCentro"
+                           Label="Tipo de centro"
                            Variant="Variant.Outlined">
-                    <MudSelectItem Value="@("Padrino")">Padrino</MudSelectItem>
-                    <MudSelectItem Value="@("Donante")">Donante</MudSelectItem>
-                    <MudSelectItem Value="@("Voluntario")">Voluntario</MudSelectItem>
-                    <MudSelectItem Value="@("Empresa")">Empresa</MudSelectItem>
-                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                    <MudSelectItem Value="@("Público")">Público</MudSelectItem>
+                    <MudSelectItem Value="@("Privado")">Privado</MudSelectItem>
+                    <MudSelectItem Value="@("Cooperativa")">Cooperativa</MudSelectItem>
+                    <MudSelectItem Value="@("Municipal")">Municipal</MudSelectItem>
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="benefactorForm.Telefono"
+                <MudTextField @bind-Value="centroForm.Telefono"
                               Label="Teléfono"
                               Variant="Variant.Outlined" />
             </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="benefactorForm.CorreoElectronico"
-                              Label="Correo electrónico"
+            <MudItem xs="12">
+                <MudTextField @bind-Value="centroForm.Direccion"
+                              Label="Dirección"
                               Variant="Variant.Outlined"
-                              InputType="InputType.Email" />
+                              Lines="2" />
             </MudItem>
             @if (!esNuevo)
             {
                 <MudItem xs="12" sm="6">
-                    <MudSelect @bind-Value="benefactorForm.Estado"
+                    <MudSelect @bind-Value="centroForm.Estado"
                                Label="Estado"
                                Variant="Variant.Outlined">
                         <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
@@ -179,12 +170,6 @@ else
                     </MudSelect>
                 </MudItem>
             }
-            <MudItem xs="12">
-                <MudTextField @bind-Value="benefactorForm.Direccion"
-                              Label="Dirección"
-                              Variant="Variant.Outlined"
-                              Lines="2" />
-            </MudItem>
         </MudGrid>
     </DialogContent>
     <DialogActions>
@@ -193,7 +178,7 @@ else
                    Style="color:#546E7A; border-color:#546E7A;">
             Cancelar
         </MudButton>
-        <MudButton OnClick="GuardarBenefactor"
+        <MudButton OnClick="GuardarCentro"
                    Variant="Variant.Filled"
                    Style="background-color:#1565C0; color:white;"
                    Disabled="@guardando">
@@ -211,13 +196,13 @@ else
 </MudDialog>
 
 @code {
-    private List<Benefactor> benefactores = new();
+    private List<CentroEducativo> centros = new();
     private string busqueda = string.Empty;
     private bool cargando = true;
     private bool mostrarFormulario = false;
     private bool esNuevo = true;
     private bool guardando = false;
-    private Benefactor benefactorForm = new();
+    private CentroEducativo centroForm = new();
 
     private DialogOptions dialogOptions = new()
     {
@@ -226,43 +211,43 @@ else
         CloseOnEscapeKey = true
     };
 
-    private IEnumerable<Benefactor> benefactoresFiltrados => benefactores.Where(b =>
+    private IEnumerable<CentroEducativo> centrosFiltrados => centros.Where(c =>
         string.IsNullOrWhiteSpace(busqueda) ||
-        b.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
-        (b.CorreoElectronico?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
-        (b.TipoBenefactor?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+        c.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+        (c.TipoCentro?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
 
-    protected override async Task OnInitializedAsync()
-    {
-        await CargarBenefactores();
-    }
+    protected override async Task OnInitializedAsync() => await CargarCentros();
 
-    private async Task CargarBenefactores()
+    private async Task CargarCentros()
     {
         cargando = true;
-        benefactores = await BenefactorService.GetBenefactores();
+        try
+        {
+            var resultado = await Http.GetFromJsonAsync<List<CentroEducativo>>("api/CentrosEducativos");
+            centros = resultado ?? new();
+        }
+        catch { centros = new(); }
         cargando = false;
     }
 
     private void AbrirFormularioNuevo()
     {
         esNuevo = true;
-        benefactorForm = new Benefactor { Estado = "Activo" };
+        centroForm = new CentroEducativo { Estado = "Activo" };
         mostrarFormulario = true;
     }
 
-    private void AbrirFormularioEditar(Benefactor b)
+    private void AbrirFormularioEditar(CentroEducativo c)
     {
         esNuevo = false;
-        benefactorForm = new Benefactor
+        centroForm = new CentroEducativo
         {
-            BenefactorId = b.BenefactorId,
-            NombreCompleto = b.NombreCompleto,
-            Telefono = b.Telefono,
-            CorreoElectronico = b.CorreoElectronico,
-            Direccion = b.Direccion,
-            TipoBenefactor = b.TipoBenefactor,
-            Estado = b.Estado
+            CentroEducativoId = c.CentroEducativoId,
+            Nombre = c.Nombre,
+            Direccion = c.Direccion,
+            Telefono = c.Telefono,
+            TipoCentro = c.TipoCentro,
+            Estado = c.Estado
         };
         mostrarFormulario = true;
     }
@@ -270,51 +255,48 @@ else
     private void CerrarFormulario()
     {
         mostrarFormulario = false;
-        benefactorForm = new();
+        centroForm = new();
     }
 
-    private async Task GuardarBenefactor()
+    private async Task GuardarCentro()
     {
-        if (string.IsNullOrWhiteSpace(benefactorForm.NombreCompleto))
+        if (string.IsNullOrWhiteSpace(centroForm.Nombre))
         {
-            Snackbar.Add("El nombre del benefactor es requerido.", Severity.Warning);
+            Snackbar.Add("El nombre del centro es requerido.", Severity.Warning);
             return;
         }
 
         guardando = true;
-        (bool exito, string mensaje) resultado;
+        System.Net.Http.HttpResponseMessage response;
 
         if (esNuevo)
-            resultado = await BenefactorService.CrearBenefactor(benefactorForm);
+            response = await Http.PostAsJsonAsync("api/CentrosEducativos", centroForm);
         else
-            resultado = await BenefactorService.ActualizarBenefactor(
-                benefactorForm.BenefactorId, benefactorForm);
+            response = await Http.PutAsJsonAsync(
+                $"api/CentrosEducativos/{centroForm.CentroEducativoId}", centroForm);
 
         guardando = false;
 
-        if (resultado.exito)
+        if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add(resultado.mensaje, Severity.Success);
+            Snackbar.Add(esNuevo ? "Centro creado." : "Centro actualizado.", Severity.Success);
             CerrarFormulario();
-            await CargarBenefactores();
+            await CargarCentros();
         }
         else
         {
-            Snackbar.Add(resultado.mensaje, Severity.Error);
+            Snackbar.Add("Error al guardar.", Severity.Error);
         }
     }
 
-    private async Task DesactivarBenefactor(Benefactor b)
+    private async Task DesactivarCentro(CentroEducativo c)
     {
-        var resultado = await BenefactorService.DesactivarBenefactor(b.BenefactorId);
-        if (resultado.exito)
+        var response = await Http.DeleteAsync($"api/CentrosEducativos/{c.CentroEducativoId}");
+        if (response.IsSuccessStatusCode)
         {
-            Snackbar.Add(resultado.mensaje, Severity.Success);
-            await CargarBenefactores();
+            Snackbar.Add("Centro desactivado.", Severity.Success);
+            await CargarCentros();
         }
-        else
-        {
-            Snackbar.Add(resultado.mensaje, Severity.Error);
-        }
+        else Snackbar.Add("Error al desactivar.", Severity.Error);
     }
 }

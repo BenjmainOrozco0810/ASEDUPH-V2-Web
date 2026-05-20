@@ -1,0 +1,318 @@
+@page "/reportes"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject EstudianteService EstudianteService
+@inject SolicitudBecaService SolicitudService
+@inject BecaService BecaService
+@inject BenefactorService BenefactorService
+
+<PageTitle>Reportes - ASEDUPH</PageTitle>
+
+<MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;" Class="mb-1">
+    Reportes e Indicadores
+</MudText>
+<MudText Typo="Typo.body2" Style="color:#546E7A;" Class="mb-6">
+    Estadísticas generales del programa de becas — ASEDUPH
+</MudText>
+
+@if (cargando)
+{
+    <div class="d-flex justify-center pa-10">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <!-- Indicadores numéricos -->
+    <MudGrid Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #1565C0; border-radius:8px; text-align:center;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h3" Style="color:#1565C0; font-weight:700;">
+                        @totalEstudiantes
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Style="color:#546E7A;">
+                        Estudiantes Registrados
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #1976D2; border-radius:8px; text-align:center;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h3" Style="color:#1976D2; font-weight:700;">
+                        @totalSolicitudes
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Style="color:#546E7A;">
+                        Solicitudes Totales
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #0288D1; border-radius:8px; text-align:center;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h3" Style="color:#0288D1; font-weight:700;">
+                        @totalBecas
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Style="color:#546E7A;">
+                        Becas Activas
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudCard Elevation="3" Style="border-top:4px solid #0277BD; border-radius:8px; text-align:center;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h3" Style="color:#0277BD; font-weight:700;">
+                        @totalBenefactores
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1" Style="color:#546E7A;">
+                        Benefactores Activos
+                    </MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudGrid>
+        <!-- Gráfica de solicitudes por estado -->
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Solicitudes por Estado
+                    </MudText>
+                    @if (datosSolicitudes.Any())
+                    {
+                        <MudChart ChartType="ChartType.Donut"
+                                  InputData="@datosSolicitudesValores"
+                                  InputLabels="@datosSolicitudesEtiquetas"
+                                  Width="300px" Height="300px"
+                                  T="double">
+                        </MudChart>
+                        <MudDivider Class="my-3" />
+                        @foreach (var item in datosSolicitudes)
+                        {
+                            <div class="d-flex justify-space-between align-center mb-2">
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="@GetEstadoStyle(item.Key)">
+                                    @item.Key
+                                </MudChip>
+                                <MudText Typo="Typo.body2" Style="font-weight:700;">
+                                    @item.Value
+                                </MudText>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center pa-6">
+                            <MudText Style="color:#546E7A;">No hay datos disponibles</MudText>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Gráfica de becas por nivel educativo -->
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Becas por Nivel Educativo
+                    </MudText>
+                    @if (datosBecas.Any())
+                    {
+                        <MudChart ChartType="ChartType.Bar"
+                                  InputData="@datosBecasValores"
+                                  InputLabels="@datosBecasEtiquetas"
+                                  Width="100%" Height="300px"
+                                  ChartOptions="@opcionesGrafica"
+                                  T="double">
+                        </MudChart>
+                    }
+                    else
+                    {
+                        <div class="text-center pa-6">
+                            <MudText Style="color:#546E7A;">No hay datos disponibles</MudText>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Tabla resumen de solicitudes -->
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Resumen de Solicitudes
+                    </MudText>
+                    <MudTable Items="@resumenSolicitudes" Dense="true" Elevation="0" Striped="true">
+                        <HeaderContent>
+                            <MudTh Style="color:#1565C0;">Estado</MudTh>
+                            <MudTh Style="color:#1565C0;">Cantidad</MudTh>
+                            <MudTh Style="color:#1565C0;">Porcentaje</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="@GetEstadoStyle(context.Estado)">
+                                    @context.Estado
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2" Style="font-weight:700;">
+                                    @context.Cantidad
+                                </MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2">
+                                    @context.Porcentaje.ToString("F1")%
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+                        <FooterContent>
+                            <MudTFootRow>
+                                <MudTd><b>Total</b></MudTd>
+                                <MudTd><b>@totalSolicitudes</b></MudTd>
+                                <MudTd><b>100%</b></MudTd>
+                            </MudTFootRow>
+                        </FooterContent>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <!-- Tabla resumen de becas -->
+        <MudItem xs="12" md="6">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Resumen de Becas por Nivel
+                    </MudText>
+                    <MudTable Items="@resumenBecas" Dense="true" Elevation="0" Striped="true">
+                        <HeaderContent>
+                            <MudTh Style="color:#1565C0;">Nivel Educativo</MudTh>
+                            <MudTh Style="color:#1565C0;">Becas Activas</MudTh>
+                            <MudTh Style="color:#1565C0;">Porcentaje</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>
+                                <MudText Typo="Typo.body2">@context.Estado</MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2" Style="font-weight:700;">
+                                    @context.Cantidad
+                                </MudText>
+                            </MudTd>
+                            <MudTd>
+                                <MudText Typo="Typo.body2">
+                                    @context.Porcentaje.ToString("F1")%
+                                </MudText>
+                            </MudTd>
+                        </RowTemplate>
+                        <FooterContent>
+                            <MudTFootRow>
+                                <MudTd><b>Total</b></MudTd>
+                                <MudTd><b>@totalBecas</b></MudTd>
+                                <MudTd><b>100%</b></MudTd>
+                            </MudTFootRow>
+                        </FooterContent>
+                    </MudTable>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private bool cargando = true;
+    private int totalEstudiantes;
+    private int totalSolicitudes;
+    private int totalBecas;
+    private int totalBenefactores;
+
+    private Dictionary<string, int> datosSolicitudes = new();
+    private double[] datosSolicitudesValores = Array.Empty<double>();
+    private string[] datosSolicitudesEtiquetas = Array.Empty<string>();
+
+    private Dictionary<string, int> datosBecas = new();
+    private double[] datosBecasValores = Array.Empty<double>();
+    private string[] datosBecasEtiquetas = Array.Empty<string>();
+
+    private List<ResumenItem> resumenSolicitudes = new();
+    private List<ResumenItem> resumenBecas = new();
+
+    private ChartOptions opcionesGrafica = new ChartOptions();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+
+        var estudiantes = await EstudianteService.GetEstudiantes();
+        var solicitudes = await SolicitudService.GetSolicitudes();
+        var becas = await BecaService.GetBecas();
+        var benefactores = await BenefactorService.GetBenefactores();
+
+        totalEstudiantes = estudiantes.Count;
+        totalSolicitudes = solicitudes.Count;
+        totalBecas = becas.Count;
+        totalBenefactores = benefactores.Count;
+
+        // Solicitudes por estado
+        datosSolicitudes = solicitudes
+            .GroupBy(s => s.EstadoSolicitud)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        datosSolicitudesValores = datosSolicitudes.Values.Select(v => (double)v).ToArray();
+        datosSolicitudesEtiquetas = datosSolicitudes.Keys.ToArray();
+
+        resumenSolicitudes = datosSolicitudes.Select(kv => new ResumenItem
+        {
+            Estado = kv.Key,
+            Cantidad = kv.Value,
+            Porcentaje = totalSolicitudes > 0 ? (kv.Value * 100.0 / totalSolicitudes) : 0
+        }).ToList();
+
+        // Becas por nivel educativo
+        datosBecas = becas
+            .GroupBy(b => b.NivelEducativo ?? "Sin nivel")
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        datosBecasValores = datosBecas.Values.Select(v => (double)v).ToArray();
+        datosBecasEtiquetas = datosBecas.Keys.ToArray();
+
+        resumenBecas = datosBecas.Select(kv => new ResumenItem
+        {
+            Estado = kv.Key,
+            Cantidad = kv.Value,
+            Porcentaje = totalBecas > 0 ? (kv.Value * 100.0 / totalBecas) : 0
+        }).ToList();
+
+        cargando = false;
+    }
+
+    private string GetEstadoStyle(string estado) => estado switch
+    {
+        "Pendiente" => "background-color:#FFF8E1; color:#F57C00;",
+        "En Evaluación" => "background-color:#E3F2FD; color:#1565C0;",
+        "Aprobada" => "background-color:#E8F5E9; color:#2E7D32;",
+        "Rechazada" => "background-color:#FFEBEE; color:#C62828;",
+        "Cancelada" => "background-color:#F5F5F5; color:#546E7A;",
+        _ => "background-color:#F5F5F5; color:#546E7A;"
+    };
+
+    private class ResumenItem
+    {
+        public string Estado { get; set; } = string.Empty;
+        public int Cantidad { get; set; }
+        public double Porcentaje { get; set; }
+    }
+}

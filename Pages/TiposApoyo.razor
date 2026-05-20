@@ -1,0 +1,266 @@
+@page "/tipos-apoyo"
+@using ASEDUPH_V2_Web.Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Tipos de Apoyo - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Tipos de Apoyo
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Gestión de tipos de apoyo disponibles — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Tipo
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por nombre..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Immediate="true" />
+    </MudCardContent>
+</MudCard>
+
+@if (cargando)
+{
+    <div class="d-flex justify-center pa-10">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else if (!tiposFiltrados.Any())
+{
+    <MudCard Elevation="2" Style="border-radius:12px;">
+        <MudCardContent Class="text-center pa-10">
+            <MudIcon Icon="@Icons.Material.Filled.Category"
+                     Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+            <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                No se encontraron tipos de apoyo
+            </MudText>
+        </MudCardContent>
+    </MudCard>
+}
+else
+{
+    <MudGrid>
+        @foreach (var t in tiposFiltrados)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3" Style="border-radius:12px; border-left:4px solid #1565C0;">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex align-center mb-3">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:48px; height:48px;"
+                                       Class="mr-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Category" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.subtitle1" Style="font-weight:700; color:#1565C0;">
+                                    @t.Nombre
+                                </MudText>
+                                <MudChip T="string" Size="Size.Small"
+                                         Style="@(t.Estado == "Activo"
+                                             ? "background-color:#E8F5E9; color:#2E7D32;"
+                                             : "background-color:#FFEBEE; color:#C62828;")">
+                                    @t.Estado
+                                </MudChip>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(t.Descripcion))
+                        {
+                            <MudDivider Class="mb-2" />
+                            <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                                @t.Descripcion
+                            </MudText>
+                        }
+                    </MudCardContent>
+                    <MudCardActions Class="pa-3 pt-0">
+                        <MudButton Variant="Variant.Text"
+                                   Style="color:#1565C0;"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="@(() => AbrirFormularioEditar(t))">
+                            Editar
+                        </MudButton>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;" Size="Size.Small"
+                                       OnClick="@(() => DesactivarTipo(t))" />
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+<!-- Dialog -->
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nuevo Tipo de Apoyo" : "Editar Tipo de Apoyo")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="tipoForm.Nombre"
+                              Label="Nombre del tipo de apoyo"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="tipoForm.Descripcion"
+                              Label="Descripción"
+                              Variant="Variant.Outlined"
+                              Lines="3" />
+            </MudItem>
+            @if (!esNuevo)
+            {
+                <MudItem xs="12" sm="6">
+                    <MudSelect @bind-Value="tipoForm.Estado"
+                               Label="Estado"
+                               Variant="Variant.Outlined">
+                        <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                        <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarTipo"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<TipoApoyo> tipos = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private TipoApoyo tipoForm = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<TipoApoyo> tiposFiltrados => tipos.Where(t =>
+        string.IsNullOrWhiteSpace(busqueda) ||
+        t.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync() => await CargarTipos();
+
+    private async Task CargarTipos()
+    {
+        cargando = true;
+        try
+        {
+            var resultado = await Http.GetFromJsonAsync<List<TipoApoyo>>("api/TiposApoyo");
+            tipos = resultado ?? new();
+        }
+        catch { tipos = new(); }
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        tipoForm = new TipoApoyo { Estado = "Activo" };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(TipoApoyo t)
+    {
+        esNuevo = false;
+        tipoForm = new TipoApoyo
+        {
+            TipoApoyoId = t.TipoApoyoId,
+            Nombre = t.Nombre,
+            Descripcion = t.Descripcion,
+            Estado = t.Estado
+        };
+        mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        tipoForm = new();
+    }
+
+    private async Task GuardarTipo()
+    {
+        if (string.IsNullOrWhiteSpace(tipoForm.Nombre))
+        {
+            Snackbar.Add("El nombre es requerido.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+        System.Net.Http.HttpResponseMessage response;
+
+        if (esNuevo)
+            response = await Http.PostAsJsonAsync("api/TiposApoyo", tipoForm);
+        else
+            response = await Http.PutAsJsonAsync(
+                $"api/TiposApoyo/{tipoForm.TipoApoyoId}", tipoForm);
+
+        guardando = false;
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add(esNuevo ? "Tipo creado." : "Tipo actualizado.", Severity.Success);
+            CerrarFormulario();
+            await CargarTipos();
+        }
+        else Snackbar.Add("Error al guardar.", Severity.Error);
+    }
+
+    private async Task DesactivarTipo(TipoApoyo t)
+    {
+        var response = await Http.DeleteAsync($"api/TiposApoyo/{t.TipoApoyoId}");
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Tipo desactivado.", Severity.Success);
+            await CargarTipos();
+        }
+        else Snackbar.Add("Error al desactivar.", Severity.Error);
+    }
+}

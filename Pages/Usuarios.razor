@@ -1,0 +1,464 @@
+@page "/usuarios"
+@using ASEDUPH_V2_Web.Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Usuarios - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Usuarios
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Gestión de usuarios del sistema — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.PersonAdd"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nuevo Usuario
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por nombre o username..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Immediate="true" />
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!usuariosFiltrados.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.ManageAccounts"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron usuarios
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@usuariosFiltrados"
+                      Hover="true" Striped="true" Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Nombre</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Username</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Correo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Roles</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:36px; height:36px; font-size:0.9rem;"
+                                       Class="mr-3">
+                                @context.NombreCompleto.Substring(0, 1).ToUpper()
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @context.NombreCompleto
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.Username</MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@(context.Correo ?? "--")</MudText>
+                    </MudTd>
+                    <MudTd>
+                        @foreach (var rol in context.Roles)
+                        {
+                            <MudChip T="string" Size="Size.Small"
+                                     Style="background-color:#E3F2FD; color:#1565C0;"
+                                     Class="mr-1">
+                                @rol
+                            </MudChip>
+                        }
+                        @if (!context.Roles.Any())
+                        {
+                            <MudText Typo="Typo.body2" Style="color:#546E7A;">Sin roles</MudText>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(context.Estado == "Activo"
+                                     ? "background-color:#E8F5E9; color:#2E7D32;"
+                                     : "background-color:#FFEBEE; color:#C62828;")">
+                            @context.Estado
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;" Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Lock"
+                                       Style="color:#F57C00;" Size="Size.Small"
+                                       OnClick="@(() => AbrirCambioPassword(context))"
+                                       Title="Cambiar contraseña" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;" Size="Size.Small"
+                                       OnClick="@(() => DesactivarUsuario(context))" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Nuevo Usuario -->
+<MudDialog @bind-Visible="mostrarFormularioNuevo" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            Nuevo Usuario
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="nuevoUsuario.NombreCompleto"
+                              Label="Nombre completo"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="nuevoUsuario.Username"
+                              Label="Username"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="nuevoUsuario.Correo"
+                              Label="Correo electrónico"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="nuevoUsuario.Password"
+                              Label="Contraseña"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Password"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="rolSeleccionado"
+                           Label="Rol"
+                           Variant="Variant.Outlined"
+                           T="int">
+                    @foreach (var rol in roles)
+                    {
+                        <MudSelectItem Value="@rol.RolId">@rol.NombreRol</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => mostrarFormularioNuevo = false)"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="CrearUsuario"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>Crear Usuario</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Dialog Editar Usuario -->
+<MudDialog @bind-Visible="mostrarFormularioEditar" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            Editar Usuario
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="editarUsuario.NombreCompleto"
+                              Label="Nombre completo"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="editarUsuario.Username"
+                              Label="Username"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="editarUsuario.Correo"
+                              Label="Correo electrónico"
+                              Variant="Variant.Outlined"
+                              InputType="InputType.Email" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="editarUsuario.Estado"
+                           Label="Estado"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
+                    <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => mostrarFormularioEditar = false)"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="ActualizarUsuario"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>Actualizar</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Dialog Cambiar Password -->
+<MudDialog @bind-Visible="mostrarCambioPassword" Options="dialogPasswordOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            Cambiar Contraseña
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;" Class="mb-4">
+            Usuario: <b>@usuarioSeleccionado?.NombreCompleto</b>
+        </MudText>
+        <MudTextField @bind-Value="nuevaPassword"
+                      Label="Nueva contraseña"
+                      Variant="Variant.Outlined"
+                      InputType="InputType.Password"
+                      Required="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => mostrarCambioPassword = false)"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarPassword"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<Usuario> usuarios = new();
+    private List<Rol> roles = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool guardando = false;
+    private bool mostrarFormularioNuevo = false;
+    private bool mostrarFormularioEditar = false;
+    private bool mostrarCambioPassword = false;
+    private int usuarioEditandoId = 0;
+    private Usuario? usuarioSeleccionado;
+    private string nuevaPassword = string.Empty;
+    private int rolSeleccionado = 0;
+
+    private CrearUsuarioRequest nuevoUsuario = new();
+    private ActualizarUsuarioRequest editarUsuario = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private DialogOptions dialogPasswordOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<Usuario> usuariosFiltrados => usuarios.Where(u =>
+        string.IsNullOrWhiteSpace(busqueda) ||
+        u.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+        u.Username.Contains(busqueda, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        try
+        {
+            var resultUsuarios = await Http.GetFromJsonAsync<List<Usuario>>("api/Usuarios");
+            usuarios = resultUsuarios ?? new List<Usuario>();
+
+            var resultRoles = await Http.GetFromJsonAsync<List<Rol>>("api/Roles");
+            roles = resultRoles ?? new List<Rol>();
+        }
+        catch { }
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        nuevoUsuario = new CrearUsuarioRequest();
+        rolSeleccionado = roles.FirstOrDefault()?.RolId ?? 0;
+        mostrarFormularioNuevo = true;
+    }
+
+    private void AbrirFormularioEditar(Usuario usuario)
+    {
+        usuarioEditandoId = usuario.UsuarioId;
+        editarUsuario = new ActualizarUsuarioRequest
+        {
+            NombreCompleto = usuario.NombreCompleto,
+            Correo = usuario.Correo,
+            Username = usuario.Username,
+            Estado = usuario.Estado
+        };
+        mostrarFormularioEditar = true;
+    }
+
+    private void AbrirCambioPassword(Usuario usuario)
+    {
+        usuarioSeleccionado = usuario;
+        nuevaPassword = string.Empty;
+        mostrarCambioPassword = true;
+    }
+
+    private async Task CrearUsuario()
+    {
+        if (string.IsNullOrWhiteSpace(nuevoUsuario.NombreCompleto) ||
+            string.IsNullOrWhiteSpace(nuevoUsuario.Username) ||
+            string.IsNullOrWhiteSpace(nuevoUsuario.Password))
+        {
+            Snackbar.Add("Complete todos los campos requeridos.", Severity.Warning);
+            return;
+        }
+
+        if (rolSeleccionado > 0)
+            nuevoUsuario.RolIds = new List<int> { rolSeleccionado };
+
+        guardando = true;
+        var response = await Http.PostAsJsonAsync("api/Usuarios", nuevoUsuario);
+        guardando = false;
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Usuario creado correctamente.", Severity.Success);
+            mostrarFormularioNuevo = false;
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add("Error al crear el usuario.", Severity.Error);
+        }
+    }
+
+    private async Task ActualizarUsuario()
+    {
+        if (string.IsNullOrWhiteSpace(editarUsuario.NombreCompleto))
+        {
+            Snackbar.Add("El nombre es requerido.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+        var response = await Http.PutAsJsonAsync($"api/Usuarios/{usuarioEditandoId}", editarUsuario);
+        guardando = false;
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Usuario actualizado correctamente.", Severity.Success);
+            mostrarFormularioEditar = false;
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add("Error al actualizar el usuario.", Severity.Error);
+        }
+    }
+
+    private async Task GuardarPassword()
+    {
+        if (string.IsNullOrWhiteSpace(nuevaPassword) || nuevaPassword.Length < 6)
+        {
+            Snackbar.Add("La contraseña debe tener al menos 6 caracteres.", Severity.Warning);
+            return;
+        }
+
+        var request = new CambiarPasswordRequest { NuevaPassword = nuevaPassword };
+        var response = await Http.PatchAsJsonAsync(
+            $"api/Usuarios/{usuarioSeleccionado!.UsuarioId}/password", request);
+
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Contraseña actualizada correctamente.", Severity.Success);
+            mostrarCambioPassword = false;
+        }
+        else
+        {
+            Snackbar.Add("Error al cambiar la contraseña.", Severity.Error);
+        }
+    }
+
+    private async Task DesactivarUsuario(Usuario usuario)
+    {
+        var response = await Http.DeleteAsync($"api/Usuarios/{usuario.UsuarioId}");
+        if (response.IsSuccessStatusCode)
+        {
+            Snackbar.Add("Usuario desactivado correctamente.", Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add("Error al desactivar el usuario.", Severity.Error);
+        }
+    }
+}
