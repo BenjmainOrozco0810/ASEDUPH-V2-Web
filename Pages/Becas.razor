@@ -43,7 +43,7 @@
                       Variant="Variant.Outlined"
                       Clearable="true"
                       Immediate="true"
-                      FullWidth="true" />
+                       />
     </MudCardContent>
 </MudCard>
 
@@ -144,7 +144,7 @@
 </MudCard>
 
 <!-- Dialog Formulario -->
-<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
             @(esNuevo ? "Nueva Beca" : "Editar Beca")
@@ -156,7 +156,7 @@
                 <MudSelect @bind-Value="becaForm.EstudianteId"
                            Label="Estudiante"
                            Variant="Variant.Outlined"
-                           FullWidth="true"
+                           
                            Required="true">
                     @foreach (var e in estudiantes)
                     {
@@ -168,7 +168,7 @@
                 <MudSelect @bind-Value="becaForm.NivelEducativo"
                            Label="Nivel educativo"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Preprimaria")">Preprimaria</MudSelectItem>
                     <MudSelectItem Value="@("Primaria")">Primaria</MudSelectItem>
                     <MudSelectItem Value="@("Básicos")">Básicos</MudSelectItem>
@@ -180,7 +180,7 @@
                 <MudTextField @bind-Value="becaForm.TipoBeca"
                               Label="Tipo de beca"
                               Variant="Variant.Outlined"
-                              FullWidth="true"
+                              
                               Placeholder="Ej: Beca completa, Beca parcial..." />
             </MudItem>
             <MudItem xs="12" sm="6">
@@ -189,7 +189,7 @@
                                  Variant="Variant.Outlined"
                                  Min="0"
                                  T="decimal?"
-                                 FullWidth="true" />
+                                  />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="becaForm.AnioInicio"
@@ -197,7 +197,7 @@
                                  Variant="Variant.Outlined"
                                  Min="2000" Max="2100"
                                  T="int"
-                                 FullWidth="true" />
+                                  />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="becaForm.AnioFin"
@@ -205,21 +205,21 @@
                                  Variant="Variant.Outlined"
                                  Min="2000" Max="2100"
                                  T="int?"
-                                 FullWidth="true" />
+                                  />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="becaForm.FechaAprobacion"
                                Label="Fecha de aprobación"
                                Variant="Variant.Outlined"
                                DateFormat="dd/MM/yyyy"
-                               FullWidth="true" />
+                                />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="becaForm.Observaciones"
                               Label="Observaciones"
                               Variant="Variant.Outlined"
                               Lines="2"
-                              FullWidth="true" />
+                               />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -247,7 +247,7 @@
 </MudDialog>
 
 <!-- Dialog Cambio de Estado -->
-<MudDialog @bind-IsVisible="mostrarCambioEstado" Options="dialogEstadoOptions">
+<MudDialog @bind-Visible="mostrarCambioEstado" Options="dialogEstadoOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
             Cambiar Estado de Beca
@@ -260,7 +260,7 @@
         <MudSelect @bind-Value="nuevoEstado"
                    Label="Nuevo estado"
                    Variant="Variant.Outlined"
-                   FullWidth="true">
+                   >
             <MudSelectItem Value="@("Activa")">Activa</MudSelectItem>
             <MudSelectItem Value="@("Finalizada")">Finalizada</MudSelectItem>
             <MudSelectItem Value="@("Suspendida")">Suspendida</MudSelectItem>

@@ -1,0 +1,403 @@
+@page "/visitas"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject VisitaFamiliarService VisitaService
+@inject ISnackbar Snackbar
+
+<PageTitle>Visitas Familiares - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Visitas Familiares
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Informes de visita para solicitudes de beca — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.Home"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nueva Visita
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por estudiante o persona entrevistada..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Immediate="true"
+                       />
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!visitasFiltradas.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.Home"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron visitas familiares
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@visitasFiltradas"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">#</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estudiante</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Tipo Visita</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Entrevistado</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Realizada Por</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                            #@context.VisitaFamiliarId
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:32px; height:32px; font-size:0.85rem;"
+                                       Class="mr-2">
+                                @(context.SolicitudBeca?.Estudiante?.NombreCompleto
+                                    .Substring(0, 1).ToUpper() ?? "?")
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @(context.SolicitudBeca?.Estudiante?.NombreCompleto ?? "Sin nombre")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="background-color:#E3F2FD; color:#1565C0;">
+                            @(context.TipoVisita ?? "--")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.FechaVisita?.ToString("dd/MM/yyyy") ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @(context.PersonaEntrevistada ?? "--")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color:#546E7A;">
+                                @(context.ParentescoEntrevistado ?? "")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.RealizadaPor ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => EliminarVisita(context))"
+                                       Title="Eliminar" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario -->
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nueva Visita Familiar" : "Editar Visita Familiar")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <!-- Sección 1: Datos básicos -->
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle2" Style="color:#1565C0;" Class="mb-2">
+                    Información General
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="visitaForm.SolicitudBecaId"
+                           Label="Solicitud de Beca"
+                           Variant="Variant.Outlined"
+                           
+                           Required="true">
+                    @foreach (var s in solicitudes)
+                    {
+                        <MudSelectItem Value="@s.SolicitudBecaId">
+                            #@s.SolicitudBecaId - @(s.Estudiante?.NombreCompleto ?? "Sin nombre")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="visitaForm.TipoVisita"
+                           Label="Tipo de visita"
+                           Variant="Variant.Outlined"
+                           >
+                    <MudSelectItem Value="@("Domiciliaria")">Domiciliaria</MudSelectItem>
+                    <MudSelectItem Value="@("Entrevista")">Entrevista</MudSelectItem>
+                    <MudSelectItem Value="@("Videollamada")">Videollamada</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="visitaForm.FechaVisita"
+                               Label="Fecha de visita"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                                />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="visitaForm.LugarEntrevista"
+                              Label="Lugar de entrevista"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+
+            <!-- Sección 2: Persona entrevistada -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle2" Style="color:#1565C0;" Class="mb-2 mt-2">
+                    Persona Entrevistada
+                </MudText>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="visitaForm.PersonaEntrevistada"
+                              Label="Nombre de la persona entrevistada"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="visitaForm.ParentescoEntrevistado"
+                              Label="Parentesco con el estudiante"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+
+            <!-- Sección 3: Observaciones -->
+            <MudItem xs="12">
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle2" Style="color:#1565C0;" Class="mb-2 mt-2">
+                    Observaciones Finales
+                </MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="visitaForm.ActitudFamilia"
+                              Label="Actitud de la familia"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                               />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="visitaForm.ApreciacionGeneral"
+                              Label="Apreciación general"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                               />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="visitaForm.RecomendacionJunta"
+                              Label="Recomendación para la Junta Directiva"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                               />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="visitaForm.RealizadaPor"
+                              Label="Realizada por"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="visitaForm.Firma"
+                              Label="Firma"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="visitaForm.ObservacionesFinales"
+                              Label="Observaciones finales"
+                              Variant="Variant.Outlined"
+                              Lines="2"
+                               />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarVisita"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Registrar" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<VisitaFamiliar> visitas = new();
+    private List<SolicitudBeca> solicitudes = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private VisitaFamiliar visitaForm = new();
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<VisitaFamiliar> visitasFiltradas => visitas.Where(v =>
+        string.IsNullOrWhiteSpace(busqueda) ||
+        (v.SolicitudBeca?.Estudiante?.NombreCompleto
+            .Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (v.PersonaEntrevistada?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        visitas = await VisitaService.GetVisitas();
+        solicitudes = await VisitaService.GetSolicitudes();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        visitaForm = new VisitaFamiliar
+        {
+            FechaVisita = DateTime.Now
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(VisitaFamiliar visita)
+    {
+        esNuevo = false;
+        visitaForm = new VisitaFamiliar
+        {
+            VisitaFamiliarId = visita.VisitaFamiliarId,
+            SolicitudBecaId = visita.SolicitudBecaId,
+            TipoVisita = visita.TipoVisita,
+            LugarEntrevista = visita.LugarEntrevista,
+            FechaVisita = visita.FechaVisita,
+            HoraVisita = visita.HoraVisita,
+            PersonaEntrevistada = visita.PersonaEntrevistada,
+            ParentescoEntrevistado = visita.ParentescoEntrevistado,
+            ActitudFamilia = visita.ActitudFamilia,
+            ApreciacionGeneral = visita.ApreciacionGeneral,
+            RecomendacionJunta = visita.RecomendacionJunta,
+            RealizadaPor = visita.RealizadaPor,
+            Firma = visita.Firma,
+            ObservacionesFinales = visita.ObservacionesFinales
+        };
+        mostrarFormulario = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        visitaForm = new();
+    }
+
+    private async Task GuardarVisita()
+    {
+        if (visitaForm.SolicitudBecaId == 0)
+        {
+            Snackbar.Add("Debe seleccionar una solicitud de beca.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+            resultado = await VisitaService.CrearVisita(visitaForm);
+        else
+            resultado = await VisitaService.ActualizarVisita(
+                visitaForm.VisitaFamiliarId, visitaForm);
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task EliminarVisita(VisitaFamiliar visita)
+    {
+        var resultado = await VisitaService.EliminarVisita(visita.VisitaFamiliarId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+}

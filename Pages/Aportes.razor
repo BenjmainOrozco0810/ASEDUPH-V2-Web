@@ -131,7 +131,7 @@
 </MudCard>
 
 <!-- Dialog Formulario -->
-<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
             @(esNuevo ? "Nuevo Aporte" : "Editar Aporte")
@@ -143,7 +143,7 @@
                 <MudSelect @bind-Value="aporteForm.BenefactorId"
                            Label="Benefactor"
                            Variant="Variant.Outlined"
-                           FullWidth="true"
+                           
                            Required="true">
                     @foreach (var b in benefactores)
                     {
@@ -156,7 +156,7 @@
                                Label="Fecha del aporte"
                                Variant="Variant.Outlined"
                                DateFormat="dd/MM/yyyy"
-                               FullWidth="true" />
+                                />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="aporteForm.Monto"
@@ -164,13 +164,13 @@
                                  Variant="Variant.Outlined"
                                  Min="0"
                                  T="decimal"
-                                 FullWidth="true" />
+                                  />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudSelect @bind-Value="aporteForm.TipoAporte"
                            Label="Tipo de aporte"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Económico")">Económico</MudSelectItem>
                     <MudSelectItem Value="@("Útiles")">Útiles</MudSelectItem>
                     <MudSelectItem Value="@("Uniformes")">Uniformes</MudSelectItem>
@@ -183,7 +183,7 @@
                 <MudSelect @bind-Value="aporteForm.FormaPago"
                            Label="Forma de pago"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Efectivo")">Efectivo</MudSelectItem>
                     <MudSelectItem Value="@("Transferencia")">Transferencia</MudSelectItem>
                     <MudSelectItem Value="@("Depósito")">Depósito</MudSelectItem>
@@ -195,7 +195,7 @@
                 <MudSelect @bind-Value="aporteForm.Periodo"
                            Label="Período"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Mensual")">Mensual</MudSelectItem>
                     <MudSelectItem Value="@("Semestral")">Semestral</MudSelectItem>
                     <MudSelectItem Value="@("Anual")">Anual</MudSelectItem>
@@ -207,14 +207,14 @@
                 <MudTextField @bind-Value="aporteForm.NumeroComprobante"
                               Label="Número de comprobante"
                               Variant="Variant.Outlined"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="aporteForm.Observaciones"
                               Label="Observaciones"
                               Variant="Variant.Outlined"
                               Lines="2"
-                              FullWidth="true" />
+                               />
             </MudItem>
         </MudGrid>
     </DialogContent>

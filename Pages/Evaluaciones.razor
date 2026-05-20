@@ -1,0 +1,428 @@
+@page "/evaluaciones"
+@using ASEDUPH_V2_Web.Models
+@using ASEDUPH_V2_Web.Services
+@inject EvaluacionBecaService EvaluacionService
+@inject ISnackbar Snackbar
+
+<PageTitle>Evaluaciones de Beca - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Evaluaciones de Beca
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Disposición de la Junta Directiva — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled"
+               Style="background-color:#1565C0; color:white;"
+               StartIcon="@Icons.Material.Filled.RateReview"
+               OnClick="AbrirFormularioNuevo"
+               Size="Size.Large">
+        Nueva Evaluación
+    </MudButton>
+</div>
+
+<!-- Buscador -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudTextField @bind-Value="busqueda"
+                      Placeholder="Buscar por estudiante o evaluador..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Variant="Variant.Outlined"
+                      Clearable="true"
+                      Immediate="true"
+                       />
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!evaluacionesFiltradas.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.RateReview"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron evaluaciones
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@evaluacionesFiltradas"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">#</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Estudiante</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Clasificación</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Decisión Final</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha Decisión</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Evaluado Por</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+                            #@context.EvaluacionBecaId
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <div class="d-flex align-center">
+                            <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                              width:32px; height:32px; font-size:0.85rem;"
+                                       Class="mr-2">
+                                @(context.SolicitudBeca?.Estudiante?.NombreCompleto
+                                    .Substring(0, 1).ToUpper() ?? "?")
+                            </MudAvatar>
+                            <MudText Typo="Typo.body2" Style="font-weight:600;">
+                                @(context.SolicitudBeca?.Estudiante?.NombreCompleto ?? "Sin nombre")
+                            </MudText>
+                        </div>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.ClasificacionOtorgada ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@GetDecisionStyle(context.DecisionFinal)">
+                            @(context.DecisionFinal ?? "Sin decisión")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.FechaDecision?.ToString("dd/MM/yyyy") ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.EvaluadoPor ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                       Style="color:#1565C0;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirFormularioEditar(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Gavel"
+                                       Style="color:#F57C00;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => AbrirCambioDecision(context))"
+                                       Title="Cambiar decisión" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Style="color:#C62828;"
+                                       Size="Size.Small"
+                                       OnClick="@(() => EliminarEvaluacion(context))"
+                                       Title="Eliminar" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudCardContent>
+</MudCard>
+
+<!-- Dialog Formulario -->
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            @(esNuevo ? "Nueva Evaluación de Beca" : "Editar Evaluación")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudSelect @bind-Value="evaluacionForm.SolicitudBecaId"
+                           Label="Solicitud de Beca"
+                           Variant="Variant.Outlined"
+                           
+                           Required="true">
+                    @foreach (var s in solicitudes)
+                    {
+                        <MudSelectItem Value="@s.SolicitudBecaId">
+                            #@s.SolicitudBecaId - @(s.Estudiante?.NombreCompleto ?? "Sin nombre")
+                            (@s.AnioSolicitud)
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="evaluacionForm.ClasificacionOtorgada"
+                              Label="Clasificación otorgada"
+                              Variant="Variant.Outlined"
+                              
+                              Placeholder="Ej: Alta prioridad, Media, Baja..." />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="evaluacionForm.DecisionFinal"
+                           Label="Decisión final"
+                           Variant="Variant.Outlined"
+                           >
+                    <MudSelectItem Value="@("Aprobada")">Aprobada</MudSelectItem>
+                    <MudSelectItem Value="@("Rechazada")">Rechazada</MudSelectItem>
+                    <MudSelectItem Value="@("Pendiente")">Pendiente</MudSelectItem>
+                    <MudSelectItem Value="@("En Análisis")">En Análisis</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="evaluacionForm.FechaDecision"
+                               Label="Fecha de decisión"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                                />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="evaluacionForm.EvaluadoPor"
+                              Label="Evaluado por"
+                              Variant="Variant.Outlined"
+                              
+                              Placeholder="Nombre del evaluador..." />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="evaluacionForm.RecomendacionesResponsable"
+                              Label="Recomendaciones del responsable"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                               />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="evaluacionForm.ObservacionesGenerales"
+                              Label="Observaciones generales"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                               />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CerrarFormulario"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarEvaluacion"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;"
+                   Disabled="@guardando">
+            @if (guardando)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <span>Guardando...</span>
+            }
+            else
+            {
+                <span>@(esNuevo ? "Registrar" : "Actualizar")</span>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+<!-- Dialog Cambio de Decisión -->
+<MudDialog @bind-Visible="mostrarCambioDecision" Options="dialogDecisionOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
+            Cambiar Decisión Final
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-4" Style="color:#546E7A;">
+            Evaluación de:
+            <b>@evaluacionSeleccionada?.SolicitudBeca?.Estudiante?.NombreCompleto</b>
+        </MudText>
+        <MudSelect @bind-Value="nuevaDecision"
+                   Label="Nueva decisión"
+                   Variant="Variant.Outlined"
+                   >
+            <MudSelectItem Value="@("Aprobada")">Aprobada</MudSelectItem>
+            <MudSelectItem Value="@("Rechazada")">Rechazada</MudSelectItem>
+            <MudSelectItem Value="@("Pendiente")">Pendiente</MudSelectItem>
+            <MudSelectItem Value="@("En Análisis")">En Análisis</MudSelectItem>
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => mostrarCambioDecision = false)"
+                   Variant="Variant.Outlined"
+                   Style="color:#546E7A; border-color:#546E7A;">
+            Cancelar
+        </MudButton>
+        <MudButton OnClick="GuardarCambioDecision"
+                   Variant="Variant.Filled"
+                   Style="background-color:#1565C0; color:white;">
+            Guardar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private List<EvaluacionBeca> evaluaciones = new();
+    private List<SolicitudBeca> solicitudes = new();
+    private string busqueda = string.Empty;
+    private bool cargando = true;
+    private bool mostrarFormulario = false;
+    private bool mostrarCambioDecision = false;
+    private bool esNuevo = true;
+    private bool guardando = false;
+    private EvaluacionBeca evaluacionForm = new();
+    private EvaluacionBeca? evaluacionSeleccionada;
+    private string nuevaDecision = string.Empty;
+
+    private DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private DialogOptions dialogDecisionOptions = new()
+    {
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true,
+        CloseOnEscapeKey = true
+    };
+
+    private IEnumerable<EvaluacionBeca> evaluacionesFiltradas => evaluaciones.Where(e =>
+        string.IsNullOrWhiteSpace(busqueda) ||
+        (e.SolicitudBeca?.Estudiante?.NombreCompleto
+            .Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+        (e.EvaluadoPor?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        cargando = true;
+        evaluaciones = await EvaluacionService.GetEvaluaciones();
+        solicitudes = await EvaluacionService.GetSolicitudes();
+        cargando = false;
+    }
+
+    private void AbrirFormularioNuevo()
+    {
+        esNuevo = true;
+        evaluacionForm = new EvaluacionBeca
+        {
+            FechaDecision = DateTime.Now
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirFormularioEditar(EvaluacionBeca evaluacion)
+    {
+        esNuevo = false;
+        evaluacionForm = new EvaluacionBeca
+        {
+            EvaluacionBecaId = evaluacion.EvaluacionBecaId,
+            SolicitudBecaId = evaluacion.SolicitudBecaId,
+            RecomendacionesResponsable = evaluacion.RecomendacionesResponsable,
+            ClasificacionOtorgada = evaluacion.ClasificacionOtorgada,
+            DecisionFinal = evaluacion.DecisionFinal,
+            FechaDecision = evaluacion.FechaDecision,
+            ObservacionesGenerales = evaluacion.ObservacionesGenerales,
+            EvaluadoPor = evaluacion.EvaluadoPor
+        };
+        mostrarFormulario = true;
+    }
+
+    private void AbrirCambioDecision(EvaluacionBeca evaluacion)
+    {
+        evaluacionSeleccionada = evaluacion;
+        nuevaDecision = evaluacion.DecisionFinal ?? "Pendiente";
+        mostrarCambioDecision = true;
+    }
+
+    private void CerrarFormulario()
+    {
+        mostrarFormulario = false;
+        evaluacionForm = new();
+    }
+
+    private async Task GuardarEvaluacion()
+    {
+        if (evaluacionForm.SolicitudBecaId == 0)
+        {
+            Snackbar.Add("Debe seleccionar una solicitud de beca.", Severity.Warning);
+            return;
+        }
+
+        guardando = true;
+
+        (bool exito, string mensaje) resultado;
+
+        if (esNuevo)
+            resultado = await EvaluacionService.CrearEvaluacion(evaluacionForm);
+        else
+            resultado = await EvaluacionService.ActualizarEvaluacion(
+                evaluacionForm.EvaluacionBecaId, evaluacionForm);
+
+        guardando = false;
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            CerrarFormulario();
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task GuardarCambioDecision()
+    {
+        if (evaluacionSeleccionada == null) return;
+
+        var resultado = await EvaluacionService.CambiarDecision(
+            evaluacionSeleccionada.EvaluacionBecaId, nuevaDecision);
+
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            mostrarCambioDecision = false;
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private async Task EliminarEvaluacion(EvaluacionBeca evaluacion)
+    {
+        var resultado = await EvaluacionService.EliminarEvaluacion(evaluacion.EvaluacionBecaId);
+        if (resultado.exito)
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Success);
+            await CargarDatos();
+        }
+        else
+        {
+            Snackbar.Add(resultado.mensaje, Severity.Error);
+        }
+    }
+
+    private string GetDecisionStyle(string? decision) => decision switch
+    {
+        "Aprobada" => "background-color:#E8F5E9; color:#2E7D32;",
+        "Rechazada" => "background-color:#FFEBEE; color:#C62828;",
+        "Pendiente" => "background-color:#FFF8E1; color:#F57C00;",
+        "En Análisis" => "background-color:#E3F2FD; color:#1565C0;",
+        _ => "background-color:#F5F5F5; color:#546E7A;"
+    };
+}

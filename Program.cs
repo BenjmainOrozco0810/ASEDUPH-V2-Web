@@ -32,5 +32,9 @@ builder.Services.AddScoped<EstudianteService>();
 builder.Services.AddScoped<SolicitudBecaService>();
 builder.Services.AddScoped<BecaService>();
 builder.Services.AddScoped<BenefactorService>();
+builder.Services.AddScoped<EvaluacionBecaService>();
+builder.Services.AddScoped<VisitaFamiliarService>();
+builder.Services.AddScoped<SeguimientoAcademicoService>();
+builder.Services.AddScoped<RenovacionBecaService>();
 
 await builder.Build().RunAsync();

@@ -1,27 +1,27 @@
-@page "/solicitudes"
+@page "/renovaciones"
 @using ASEDUPH_V2_Web.Models
 @using ASEDUPH_V2_Web.Services
-@inject SolicitudBecaService SolicitudService
+@inject RenovacionBecaService RenovacionService
 @inject ISnackbar Snackbar
 
-<PageTitle>Solicitudes de Beca - ASEDUPH</PageTitle>
+<PageTitle>Renovaciones de Beca - ASEDUPH</PageTitle>
 
 <!-- Encabezado -->
 <div class="d-flex justify-space-between align-center mb-6">
     <div>
         <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
-            Solicitudes de Beca
+            Renovaciones de Beca
         </MudText>
         <MudText Typo="Typo.body2" Style="color:#546E7A;">
-            Gestión de solicitudes recibidas en ASEDUPH
+            Gestión de renovaciones anuales de becas — ASEDUPH
         </MudText>
     </div>
     <MudButton Variant="Variant.Filled"
                Style="background-color:#1565C0; color:white;"
-               StartIcon="@Icons.Material.Filled.NoteAdd"
+               StartIcon="@Icons.Material.Filled.Refresh"
                OnClick="AbrirFormularioNuevo"
                Size="Size.Large">
-        Nueva Solicitud
+        Nueva Renovación
     </MudButton>
 </div>
 
@@ -65,37 +65,36 @@
                 <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
             </div>
         }
-        else if (!solicitudesFiltradas.Any())
+        else if (!renovacionesFiltradas.Any())
         {
             <div class="text-center pa-10">
-                <MudIcon Icon="@Icons.Material.Filled.Assignment"
+                <MudIcon Icon="@Icons.Material.Filled.Refresh"
                          Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
                 <MudText Typo="Typo.h6" Style="color:#546E7A;">
-                    No se encontraron solicitudes
+                    No se encontraron renovaciones
                 </MudText>
             </div>
         }
         else
         {
-            <MudTable Items="@solicitudesFiltradas"
+            <MudTable Items="@renovacionesFiltradas"
                       Hover="true"
                       Striped="true"
                       Elevation="0">
                 <HeaderContent>
                     <MudTh Style="color:#1565C0; font-weight:700;">#</MudTh>
                     <MudTh Style="color:#1565C0; font-weight:700;">Estudiante</MudTh>
-                    <MudTh Style="color:#1565C0; font-weight:700;">Año</MudTh>
-                    <MudTh Style="color:#1565C0; font-weight:700;">Nivel</MudTh>
-                    <MudTh Style="color:#1565C0; font-weight:700;">Grado</MudTh>
-                    <MudTh Style="color:#1565C0; font-weight:700;">Promedio</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Año Renovación</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Promedio Anterior</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Tipo Apoyo</MudTh>
                     <MudTh Style="color:#1565C0; font-weight:700;">Estado</MudTh>
-                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha Solicitud</MudTh>
                     <MudTh Style="color:#1565C0; font-weight:700;">Acciones</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
                         <MudText Typo="Typo.body2" Style="color:#546E7A;">
-                            #@context.SolicitudBecaId
+                            #@context.RenovacionBecaId
                         </MudText>
                     </MudTd>
                     <MudTd>
@@ -103,36 +102,37 @@
                             <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
                                               width:32px; height:32px; font-size:0.85rem;"
                                        Class="mr-2">
-                                @(context.Estudiante?.NombreCompleto.Substring(0, 1).ToUpper() ?? "?")
+                                @(context.Beca?.Estudiante?.NombreCompleto
+                                    .Substring(0, 1).ToUpper() ?? "?")
                             </MudAvatar>
                             <MudText Typo="Typo.body2" Style="font-weight:600;">
-                                @(context.Estudiante?.NombreCompleto ?? "Sin nombre")
+                                @(context.Beca?.Estudiante?.NombreCompleto ?? "Sin nombre")
                             </MudText>
                         </div>
                     </MudTd>
                     <MudTd>
-                        <MudText Typo="Typo.body2">@context.AnioSolicitud</MudText>
+                        <MudText Typo="Typo.body2">@context.AnioRenovacion</MudText>
                     </MudTd>
                     <MudTd>
-                        <MudText Typo="Typo.body2">@(context.NivelEducativo ?? "--")</MudText>
-                    </MudTd>
-                    <MudTd>
-                        <MudText Typo="Typo.body2">@(context.GradoSolicitado ?? "--")</MudText>
+                        <MudText Typo="Typo.body2"
+                                 Style="@GetPromedioStyle(context.PromedioFinalAnterior)">
+                            @(context.PromedioFinalAnterior?.ToString("F2") ?? "--")
+                        </MudText>
                     </MudTd>
                     <MudTd>
                         <MudText Typo="Typo.body2">
-                            @(context.PromedioActual?.ToString("F2") ?? "--")
+                            @(context.TipoApoyoRecibido ?? "--")
                         </MudText>
                     </MudTd>
                     <MudTd>
                         <MudChip T="string" Size="Size.Small"
-                                 Style="@GetEstadoStyle(context.EstadoSolicitud)">
-                            @context.EstadoSolicitud
+                                 Style="@GetEstadoStyle(context.EstadoRenovacion)">
+                            @context.EstadoRenovacion
                         </MudChip>
                     </MudTd>
                     <MudTd>
                         <MudText Typo="Typo.body2">
-                            @context.FechaSolicitud.ToString("dd/MM/yyyy")
+                            @(context.FechaSolicitud?.ToString("dd/MM/yyyy") ?? "--")
                         </MudText>
                     </MudTd>
                     <MudTd>
@@ -148,7 +148,7 @@
                         <MudIconButton Icon="@Icons.Material.Filled.Cancel"
                                        Style="color:#C62828;"
                                        Size="Size.Small"
-                                       OnClick="@(() => CancelarSolicitud(context))"
+                                       OnClick="@(() => CancelarRenovacion(context))"
                                        Title="Cancelar" />
                     </MudTd>
                 </RowTemplate>
@@ -161,26 +161,64 @@
 <MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
-            @(esNuevo ? "Nueva Solicitud de Beca" : "Editar Solicitud")
+            @(esNuevo ? "Nueva Renovación de Beca" : "Editar Renovación")
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudGrid>
             <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="solicitudForm.EstudianteId"
-                           Label="Estudiante"
+                <MudSelect @bind-Value="renovForm.BecaId"
+                           Label="Beca"
                            Variant="Variant.Outlined"
                            
                            Required="true">
-                    @foreach (var e in estudiantes)
+                    @foreach (var b in becas)
                     {
-                        <MudSelectItem Value="@e.EstudianteId">@e.NombreCompleto</MudSelectItem>
+                        <MudSelectItem Value="@b.BecaId">
+                            #@b.BecaId - @(b.Estudiante?.NombreCompleto ?? "Sin nombre")
+                        </MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="solicitudForm.CentroEducativoId"
-                           Label="Centro Educativo"
+                <MudNumericField @bind-Value="renovForm.AnioRenovacion"
+                                 Label="Año de renovación"
+                                 Variant="Variant.Outlined"
+                                 Min="2000" Max="2100"
+                                 T="int"
+                                  />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="renovForm.AnioCursadoAnterior"
+                              Label="Año cursado anterior"
+                              Variant="Variant.Outlined"
+                              
+                              Placeholder="Ej: 1ro Básico" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="renovForm.AnioACursar"
+                              Label="Año a cursar"
+                              Variant="Variant.Outlined"
+                              
+                              Placeholder="Ej: 2do Básico" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="renovForm.PromedioFinalAnterior"
+                                 Label="Promedio final anterior"
+                                 Variant="Variant.Outlined"
+                                 Min="0" Max="100"
+                                 T="decimal?"
+                                  />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="renovForm.TipoApoyoRecibido"
+                              Label="Tipo de apoyo recibido"
+                              Variant="Variant.Outlined"
+                               />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="renovForm.CentroEducativoAnteriorId"
+                           Label="Centro educativo anterior"
                            Variant="Variant.Outlined"
                            >
                     @foreach (var c in centros)
@@ -190,62 +228,33 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="solicitudForm.AnioSolicitud"
-                                 Label="Año de solicitud"
-                                 Variant="Variant.Outlined"
-                                 Min="2000" Max="2100"
-                                 T="int"
-                                  />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="solicitudForm.NivelEducativo"
-                           Label="Nivel educativo"
+                <MudSelect @bind-Value="renovForm.CentroEducativoNuevoId"
+                           Label="Centro educativo nuevo"
                            Variant="Variant.Outlined"
                            >
-                    <MudSelectItem Value="@("Preprimaria")">Preprimaria</MudSelectItem>
-                    <MudSelectItem Value="@("Primaria")">Primaria</MudSelectItem>
-                    <MudSelectItem Value="@("Básicos")">Básicos</MudSelectItem>
-                    <MudSelectItem Value="@("Diversificado")">Diversificado</MudSelectItem>
-                    <MudSelectItem Value="@("Universidad")">Universidad</MudSelectItem>
+                    @foreach (var c in centros)
+                    {
+                        <MudSelectItem Value="@((int?)c.CentroEducativoId)">@c.Nombre</MudSelectItem>
+                    }
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="solicitudForm.GradoSolicitado"
-                              Label="Grado solicitado"
-                              Variant="Variant.Outlined"
-                               />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudNumericField @bind-Value="solicitudForm.PromedioActual"
-                                 Label="Promedio actual"
-                                 Variant="Variant.Outlined"
-                                 Min="0" Max="100"
-                                 T="decimal?"
-                                  />
-            </MudItem>
-            <MudItem xs="12">
-                <MudTextField @bind-Value="solicitudForm.MotivoSolicitud"
-                              Label="Motivo de la solicitud"
-                              Variant="Variant.Outlined"
-                              Lines="3"
-                               />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="solicitudForm.NombrePersonaCompletaFormulario"
-                              Label="Persona que completa el formulario"
-                              Variant="Variant.Outlined"
-                               />
-            </MudItem>
-            <MudItem xs="12" sm="6">
-                <MudDatePicker @bind-Date="solicitudForm.FechaFormulario"
-                               Label="Fecha del formulario"
+                <MudDatePicker @bind-Date="renovForm.FechaSolicitud"
+                               Label="Fecha de solicitud"
                                Variant="Variant.Outlined"
                                DateFormat="dd/MM/yyyy"
                                 />
             </MudItem>
             <MudItem xs="12">
-                <MudTextField @bind-Value="solicitudForm.Observaciones"
-                              Label="Observaciones"
+                <MudTextField @bind-Value="renovForm.MotivoRenovacion"
+                              Label="Motivo de renovación"
+                              Variant="Variant.Outlined"
+                              Lines="3"
+                               />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="renovForm.Recomendaciones"
+                              Label="Recomendaciones"
                               Variant="Variant.Outlined"
                               Lines="2"
                                />
@@ -258,7 +267,7 @@
                    Style="color:#546E7A; border-color:#546E7A;">
             Cancelar
         </MudButton>
-        <MudButton OnClick="GuardarSolicitud"
+        <MudButton OnClick="GuardarRenovacion"
                    Variant="Variant.Filled"
                    Style="background-color:#1565C0; color:white;"
                    Disabled="@guardando">
@@ -269,7 +278,7 @@
             }
             else
             {
-                <span>@(esNuevo ? "Crear" : "Actualizar")</span>
+                <span>@(esNuevo ? "Registrar" : "Actualizar")</span>
             }
         </MudButton>
     </DialogActions>
@@ -279,12 +288,12 @@
 <MudDialog @bind-Visible="mostrarCambioEstado" Options="dialogEstadoOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
-            Cambiar Estado de Solicitud
+            Cambiar Estado de Renovación
         </MudText>
     </TitleContent>
     <DialogContent>
         <MudText Typo="Typo.body2" Class="mb-4" Style="color:#546E7A;">
-            Solicitud de: <b>@solicitudSeleccionada?.Estudiante?.NombreCompleto</b>
+            Renovación de: <b>@renovSeleccionada?.Beca?.Estudiante?.NombreCompleto</b>
         </MudText>
         <MudSelect @bind-Value="nuevoEstado"
                    Label="Nuevo estado"
@@ -312,8 +321,8 @@
 </MudDialog>
 
 @code {
-    private List<SolicitudBeca> solicitudes = new();
-    private List<Estudiante> estudiantes = new();
+    private List<RenovacionBeca> renovaciones = new();
+    private List<Beca> becas = new();
     private List<CentroEducativo> centros = new();
     private string busqueda = string.Empty;
     private string? filtroEstado;
@@ -322,8 +331,8 @@
     private bool mostrarCambioEstado = false;
     private bool esNuevo = true;
     private bool guardando = false;
-    private SolicitudBeca solicitudForm = new();
-    private SolicitudBeca? solicitudSeleccionada;
+    private RenovacionBeca renovForm = new();
+    private RenovacionBeca? renovSeleccionada;
     private string nuevoEstado = string.Empty;
 
     private DialogOptions dialogOptions = new()
@@ -340,10 +349,11 @@
         CloseOnEscapeKey = true
     };
 
-    private IEnumerable<SolicitudBeca> solicitudesFiltradas => solicitudes.Where(s =>
+    private IEnumerable<RenovacionBeca> renovacionesFiltradas => renovaciones.Where(r =>
         (string.IsNullOrWhiteSpace(busqueda) ||
-         (s.Estudiante?.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false)) &&
-        (string.IsNullOrWhiteSpace(filtroEstado) || s.EstadoSolicitud == filtroEstado));
+         (r.Beca?.Estudiante?.NombreCompleto
+             .Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (string.IsNullOrWhiteSpace(filtroEstado) || r.EstadoRenovacion == filtroEstado));
 
     protected override async Task OnInitializedAsync()
     {
@@ -353,64 +363,65 @@
     private async Task CargarDatos()
     {
         cargando = true;
-        solicitudes = await SolicitudService.GetSolicitudes();
-        estudiantes = await SolicitudService.GetEstudiantes();
-        centros = await SolicitudService.GetCentrosEducativos();
+        renovaciones = await RenovacionService.GetRenovaciones();
+        becas = await RenovacionService.GetBecas();
+        centros = await RenovacionService.GetCentros();
         cargando = false;
     }
 
     private void AbrirFormularioNuevo()
     {
         esNuevo = true;
-        solicitudForm = new SolicitudBeca
+        renovForm = new RenovacionBeca
         {
-            AnioSolicitud = DateTime.Now.Year,
+            AnioRenovacion = DateTime.Now.Year,
             FechaSolicitud = DateTime.Now,
-            EstadoSolicitud = "Pendiente"
+            EstadoRenovacion = "Pendiente"
         };
         mostrarFormulario = true;
     }
 
-    private void AbrirFormularioEditar(SolicitudBeca solicitud)
+    private void AbrirFormularioEditar(RenovacionBeca renov)
     {
         esNuevo = false;
-        solicitudForm = new SolicitudBeca
+        renovForm = new RenovacionBeca
         {
-            SolicitudBecaId = solicitud.SolicitudBecaId,
-            EstudianteId = solicitud.EstudianteId,
-            CentroEducativoId = solicitud.CentroEducativoId,
-            AnioSolicitud = solicitud.AnioSolicitud,
-            NivelEducativo = solicitud.NivelEducativo,
-            GradoSolicitado = solicitud.GradoSolicitado,
-            PromedioActual = solicitud.PromedioActual,
-            MotivoSolicitud = solicitud.MotivoSolicitud,
-            EstadoSolicitud = solicitud.EstadoSolicitud,
-            FechaSolicitud = solicitud.FechaSolicitud,
-            NombrePersonaCompletaFormulario = solicitud.NombrePersonaCompletaFormulario,
-            FechaFormulario = solicitud.FechaFormulario,
-            Observaciones = solicitud.Observaciones
+            RenovacionBecaId = renov.RenovacionBecaId,
+            BecaId = renov.BecaId,
+            CentroEducativoAnteriorId = renov.CentroEducativoAnteriorId,
+            CentroEducativoNuevoId = renov.CentroEducativoNuevoId,
+            AnioRenovacion = renov.AnioRenovacion,
+            AnioCursadoAnterior = renov.AnioCursadoAnterior,
+            AnioACursar = renov.AnioACursar,
+            PromedioFinalAnterior = renov.PromedioFinalAnterior,
+            TipoApoyoRecibido = renov.TipoApoyoRecibido,
+            MotivoRenovacion = renov.MotivoRenovacion,
+            EstadoRenovacion = renov.EstadoRenovacion,
+            FechaSolicitud = renov.FechaSolicitud,
+            Recomendaciones = renov.Recomendaciones,
+            FechaDecision = renov.FechaDecision
         };
         mostrarFormulario = true;
     }
 
-    private void AbrirCambioEstado(SolicitudBeca solicitud)
+    private void AbrirCambioEstado(RenovacionBeca renov)
     {
-        solicitudSeleccionada = solicitud;
-        nuevoEstado = solicitud.EstadoSolicitud;
+        renovSeleccionada = renov;
+        nuevoEstado = renov.EstadoRenovacion;
         mostrarCambioEstado = true;
     }
 
     private void CerrarFormulario()
     {
         mostrarFormulario = false;
-        solicitudForm = new();
+        renovForm = new();
     }
 
-    private async Task GuardarSolicitud()
+    private async Task GuardarRenovacion()
     {
-        if (solicitudForm.EstudianteId == 0)
+        if (renovForm.BecaId == 0)
         {
-            Snackbar.Add("Debe seleccionar un estudiante.", Severity.Warning);
+            Snackbar.Add("Debe seleccionar una beca.", Severity.Warning);
             return;
         }
 
@@ -419,15 +430,10 @@
         (bool exito, string mensaje) resultado;
 
         if (esNuevo)
-        {
-            solicitudForm.FechaSolicitud = DateTime.Now;
-            resultado = await SolicitudService.CrearSolicitud(solicitudForm);
-        }
+            resultado = await RenovacionService.CrearRenovacion(renovForm);
         else
-        {
-            resultado = await SolicitudService.ActualizarSolicitud(
-                solicitudForm.SolicitudBecaId, solicitudForm);
-        }
+            resultado = await RenovacionService.ActualizarRenovacion(
+                renovForm.RenovacionBecaId, renovForm);
 
         guardando = false;
 
@@ -445,10 +451,10 @@
 
     private async Task GuardarCambioEstado()
     {
-        if (solicitudSeleccionada == null) return;
+        if (renovSeleccionada == null) return;
 
-        var resultado = await SolicitudService.CambiarEstado(
-            solicitudSeleccionada.SolicitudBecaId, nuevoEstado);
+        var resultado = await RenovacionService.CambiarEstado(
+            renovSeleccionada.RenovacionBecaId, nuevoEstado);
 
         if (resultado.exito)
         {
@@ -462,9 +468,9 @@
         }
     }
 
-    private async Task CancelarSolicitud(SolicitudBeca solicitud)
+    private async Task CancelarRenovacion(RenovacionBeca renov)
     {
-        var resultado = await SolicitudService.CancelarSolicitud(solicitud.SolicitudBecaId);
+        var resultado = await RenovacionService.CancelarRenovacion(renov.RenovacionBecaId);
         if (resultado.exito)
         {
             Snackbar.Add(resultado.mensaje, Severity.Success);
@@ -474,6 +480,14 @@
         {
             Snackbar.Add(resultado.mensaje, Severity.Error);
         }
+    }
+
+    private string GetPromedioStyle(decimal? promedio)
+    {
+        if (!promedio.HasValue) return "";
+        if (promedio >= 75) return "color:#2E7D32; font-weight:700;";
+        if (promedio >= 60) return "color:#F57C00; font-weight:700;";
+        return "color:#C62828; font-weight:700;";
     }
 
     private string GetEstadoStyle(string estado) => estado switch

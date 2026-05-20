@@ -36,7 +36,7 @@
                       AdornmentIcon="@Icons.Material.Filled.Search"
                       Variant="Variant.Outlined"
                       Clearable="true"
-                      FullWidth="true"
+                      
                       Immediate="true" />
     </MudCardContent>
 </MudCard>
@@ -114,10 +114,9 @@
                     </MudTd>
                     <MudTd>
                         <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                       Style="color:#1565C0;"
-                                       Size="Size.Small"
-                                       OnClick="@(() => AbrirFormularioEditar(context))"
-                                       Title="Editar" />
+                                            Style="color:#1565C0;"
+                                            Size="Size.Small"
+                                            OnClick="@(() => AbrirFormularioEditar(context))" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Style="color:#C62828;"
                                        Size="Size.Small"
@@ -131,7 +130,7 @@
 </MudCard>
 
 <!-- Dialog / Formulario -->
-<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
             @(esNuevo ? "Nuevo Estudiante" : "Editar Estudiante")
@@ -144,13 +143,13 @@
                               Label="Nombre completo"
                               Variant="Variant.Outlined"
                               Required="true"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudSelect @bind-Value="estudianteForm.Sexo"
                            Label="Sexo"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Femenino")">Femenino</MudSelectItem>
                     <MudSelectItem Value="@("Masculino")">Masculino</MudSelectItem>
                 </MudSelect>
@@ -161,33 +160,33 @@
                                  Variant="Variant.Outlined"
                                  Min="1" Max="99"
                                  T="int?"
-                                 FullWidth="true" />
+                                  />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="estudianteForm.FechaNacimiento"
                                Label="Fecha de nacimiento"
                                Variant="Variant.Outlined"
                                DateFormat="dd/MM/yyyy"
-                               FullWidth="true" />
+                                />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="estudianteForm.Municipio"
                               Label="Municipio"
                               Variant="Variant.Outlined"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="estudianteForm.Departamento"
                               Label="Departamento"
                               Variant="Variant.Outlined"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="estudianteForm.Direccion"
                               Label="Dirección"
                               Variant="Variant.Outlined"
                               Lines="2"
-                              FullWidth="true" />
+                               />
             </MudItem>
             @if (!esNuevo)
             {
@@ -195,7 +194,7 @@
                     <MudSelect @bind-Value="estudianteForm.Estado"
                                Label="Estado"
                                Variant="Variant.Outlined"
-                               FullWidth="true">
+                               >
                         <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
                         <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
                     </MudSelect>

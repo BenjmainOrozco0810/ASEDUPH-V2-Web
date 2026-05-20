@@ -36,7 +36,7 @@
                       Variant="Variant.Outlined"
                       Clearable="true"
                       Immediate="true"
-                      FullWidth="true" />
+                       />
     </MudCardContent>
 </MudCard>
 
@@ -129,7 +129,7 @@
 </MudCard>
 
 <!-- Dialog Formulario Benefactor -->
-<MudDialog @bind-IsVisible="mostrarFormulario" Options="dialogOptions">
+<MudDialog @bind-Visible="mostrarFormulario" Options="dialogOptions">
     <TitleContent>
         <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:700;">
             @(esNuevo ? "Nuevo Benefactor" : "Editar Benefactor")
@@ -142,13 +142,13 @@
                               Label="Nombre completo"
                               Variant="Variant.Outlined"
                               Required="true"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudSelect @bind-Value="benefactorForm.TipoBenefactor"
                            Label="Tipo de benefactor"
                            Variant="Variant.Outlined"
-                           FullWidth="true">
+                           >
                     <MudSelectItem Value="@("Padrino")">Padrino</MudSelectItem>
                     <MudSelectItem Value="@("Donante")">Donante</MudSelectItem>
                     <MudSelectItem Value="@("Voluntario")">Voluntario</MudSelectItem>
@@ -160,14 +160,14 @@
                 <MudTextField @bind-Value="benefactorForm.Telefono"
                               Label="Teléfono"
                               Variant="Variant.Outlined"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="benefactorForm.CorreoElectronico"
                               Label="Correo electrónico"
                               Variant="Variant.Outlined"
                               InputType="InputType.Email"
-                              FullWidth="true" />
+                               />
             </MudItem>
             <MudItem xs="12" sm="6">
                 @if (!esNuevo)
@@ -175,7 +175,7 @@
                     <MudSelect @bind-Value="benefactorForm.Estado"
                                Label="Estado"
                                Variant="Variant.Outlined"
-                               FullWidth="true">
+                               >
                         <MudSelectItem Value="@("Activo")">Activo</MudSelectItem>
                         <MudSelectItem Value="@("Inactivo")">Inactivo</MudSelectItem>
                     </MudSelect>
@@ -186,7 +186,7 @@
                               Label="Dirección"
                               Variant="Variant.Outlined"
                               Lines="2"
-                              FullWidth="true" />
+                               />
             </MudItem>
         </MudGrid>
     </DialogContent>
