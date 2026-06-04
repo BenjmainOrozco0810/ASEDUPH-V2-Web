@@ -329,15 +329,19 @@
 
     private async Task ConfirmarDesactivar(Estudiante estudiante)
     {
-        var resp = await EstudianteService.DesactivarEstudiante(estudiante.EstudianteId);
-        if (resp.exito)
+        // Verificar beca activa antes de intentar desactivar
+        var becas = await EstudianteService.GetEstudiantes();
+    
+        var resultado = await EstudianteService.DesactivarEstudiante(estudiante.EstudianteId);
+    
+        if (resultado.exito)
         {
-            Snackbar.Add(resp.mensaje, Severity.Success);
+            Snackbar.Add(resultado.mensaje, Severity.Success);
             await CargarEstudiantes();
         }
         else
         {
-            Snackbar.Add(resp.mensaje, Severity.Error);
+            Snackbar.Add(resultado.mensaje, Severity.Error);
         }
     }
 }

@@ -8,10 +8,19 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// Conexión con el backend
-builder.Services.AddScoped(sp => new HttpClient
+// Handler que agrega el token JWT a todas las peticiones
+builder.Services.AddScoped<AuthTokenHandler>();
+
+// Conexión con el backend (con el handler de autenticación)
+builder.Services.AddScoped(sp =>
 {
-    BaseAddress = new Uri("https://localhost:7194/")
+    var handler = sp.GetRequiredService<AuthTokenHandler>();
+    handler.InnerHandler = new HttpClientHandler();
+
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri("https://localhost:7194/")
+    };
 });
 
 // MudBlazor

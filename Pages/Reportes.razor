@@ -5,6 +5,7 @@
 @inject SolicitudBecaService SolicitudService
 @inject BecaService BecaService
 @inject BenefactorService BenefactorService
+@inject AuthService AuthService
 
 <PageTitle>Reportes - ASEDUPH</PageTitle>
 
@@ -76,32 +77,30 @@ else
     </MudGrid>
 
     <MudGrid>
-        <!-- Gráfica de solicitudes por estado -->
+        <!-- Solicitudes por estado (barras CSS) -->
         <MudItem xs="12" md="6">
             <MudCard Elevation="2" Style="border-radius:12px;">
                 <MudCardContent Class="pa-6">
                     <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
                         Solicitudes por Estado
                     </MudText>
-                    @if (datosSolicitudes.Any())
+                    @if (resumenSolicitudes.Any())
                     {
-                        <MudChart ChartType="ChartType.Donut"
-                                  InputData="@datosSolicitudesValores"
-                                  InputLabels="@datosSolicitudesEtiquetas"
-                                  Width="300px" Height="300px"
-                                  T="double">
-                        </MudChart>
-                        <MudDivider Class="my-3" />
-                        @foreach (var item in datosSolicitudes)
+                        @foreach (var item in resumenSolicitudes)
                         {
-                            <div class="d-flex justify-space-between align-center mb-2">
-                                <MudChip T="string" Size="Size.Small"
-                                         Style="@GetEstadoStyle(item.Key)">
-                                    @item.Key
-                                </MudChip>
-                                <MudText Typo="Typo.body2" Style="font-weight:700;">
-                                    @item.Value
-                                </MudText>
+                            <div class="mb-4">
+                                <div class="d-flex justify-space-between align-center mb-1">
+                                    <MudChip T="string" Size="Size.Small"
+                                             Style="@GetEstadoStyle(item.Estado)">
+                                        @item.Estado
+                                    </MudChip>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700;">
+                                        @item.Cantidad (@item.Porcentaje.ToString("F0")%)
+                                    </MudText>
+                                </div>
+                                <div style="background-color:#ECEFF1; border-radius:8px; height:14px; width:100%; overflow:hidden;">
+                                    <div style="@($"background-color:#1565C0; height:100%; width:{(int)item.Porcentaje}%; border-radius:8px; transition:width 0.5s;")"></div>
+                                </div>
                             </div>
                         }
                     }
@@ -115,22 +114,31 @@ else
             </MudCard>
         </MudItem>
 
-        <!-- Gráfica de becas por nivel educativo -->
+        <!-- Becas por nivel educativo (barras CSS) -->
         <MudItem xs="12" md="6">
             <MudCard Elevation="2" Style="border-radius:12px;">
                 <MudCardContent Class="pa-6">
                     <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
                         Becas por Nivel Educativo
                     </MudText>
-                    @if (datosBecas.Any())
+                    @if (resumenBecas.Any())
                     {
-                        <MudChart ChartType="ChartType.Bar"
-                                  InputData="@datosBecasValores"
-                                  InputLabels="@datosBecasEtiquetas"
-                                  Width="100%" Height="300px"
-                                  ChartOptions="@opcionesGrafica"
-                                  T="double">
-                        </MudChart>
+                        @foreach (var item in resumenBecas)
+                        {
+                            <div class="mb-4">
+                                <div class="d-flex justify-space-between align-center mb-1">
+                                    <MudText Typo="Typo.body2" Style="font-weight:600; color:#37474F;">
+                                        @item.Estado
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700;">
+                                        @item.Cantidad (@item.Porcentaje.ToString("F0")%)
+                                    </MudText>
+                                </div>
+                                <div style="background-color:#ECEFF1; border-radius:8px; height:14px; width:100%; overflow:hidden;">
+                                    <div style="@($"background-color:#0288D1; height:100%; width:{(int)item.Porcentaje}%; border-radius:8px; transition:width 0.5s;")"></div>
+                                </div>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -234,21 +242,12 @@ else
     private int totalBecas;
     private int totalBenefactores;
 
-    private Dictionary<string, int> datosSolicitudes = new();
-    private double[] datosSolicitudesValores = Array.Empty<double>();
-    private string[] datosSolicitudesEtiquetas = Array.Empty<string>();
-
-    private Dictionary<string, int> datosBecas = new();
-    private double[] datosBecasValores = Array.Empty<double>();
-    private string[] datosBecasEtiquetas = Array.Empty<string>();
-
     private List<ResumenItem> resumenSolicitudes = new();
     private List<ResumenItem> resumenBecas = new();
 
-    private ChartOptions opcionesGrafica = new ChartOptions();
-
     protected override async Task OnInitializedAsync()
     {
+        await AuthService.InicializarSesion();
         await CargarDatos();
     }
 
@@ -267,34 +266,28 @@ else
         totalBenefactores = benefactores.Count;
 
         // Solicitudes por estado
-        datosSolicitudes = solicitudes
+        var datosSolicitudes = solicitudes
             .GroupBy(s => s.EstadoSolicitud)
             .ToDictionary(g => g.Key, g => g.Count());
-
-        datosSolicitudesValores = datosSolicitudes.Values.Select(v => (double)v).ToArray();
-        datosSolicitudesEtiquetas = datosSolicitudes.Keys.ToArray();
 
         resumenSolicitudes = datosSolicitudes.Select(kv => new ResumenItem
         {
             Estado = kv.Key,
             Cantidad = kv.Value,
             Porcentaje = totalSolicitudes > 0 ? (kv.Value * 100.0 / totalSolicitudes) : 0
-        }).ToList();
+        }).OrderByDescending(r => r.Cantidad).ToList();
 
         // Becas por nivel educativo
-        datosBecas = becas
+        var datosBecas = becas
             .GroupBy(b => b.NivelEducativo ?? "Sin nivel")
             .ToDictionary(g => g.Key, g => g.Count());
-
-        datosBecasValores = datosBecas.Values.Select(v => (double)v).ToArray();
-        datosBecasEtiquetas = datosBecas.Keys.ToArray();
 
         resumenBecas = datosBecas.Select(kv => new ResumenItem
         {
             Estado = kv.Key,
             Cantidad = kv.Value,
             Porcentaje = totalBecas > 0 ? (kv.Value * 100.0 / totalBecas) : 0
-        }).ToList();
+        }).OrderByDescending(r => r.Cantidad).ToList();
 
         cargando = false;
     }

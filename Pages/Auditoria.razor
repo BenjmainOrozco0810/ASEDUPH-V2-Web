@@ -1,0 +1,252 @@
+@page "/auditoria"
+@using ASEDUPH_V2_Web.Models
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject ISnackbar Snackbar
+
+<PageTitle>Auditoría - ASEDUPH</PageTitle>
+
+<!-- Encabezado -->
+<div class="d-flex justify-space-between align-center mb-6">
+    <div>
+        <MudText Typo="Typo.h4" Style="color:#1565C0; font-weight:700;">
+            Log de Auditoría
+        </MudText>
+        <MudText Typo="Typo.body2" Style="color:#546E7A;">
+            Registro de todas las acciones realizadas en el sistema — ASEDUPH
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Outlined"
+               Style="border-color:#C62828; color:#C62828;"
+               StartIcon="@Icons.Material.Filled.DeleteSweep"
+               OnClick="LimpiarLogs">
+        Limpiar logs antiguos
+    </MudButton>
+</div>
+
+<!-- Filtros -->
+<MudCard Elevation="2" Style="border-radius:12px; margin-bottom:24px;">
+    <MudCardContent Class="pa-4">
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="busqueda"
+                              Placeholder="Buscar por descripción o entidad..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Clearable="true"
+                              Immediate="true" />
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect @bind-Value="filtroModulo"
+                           Label="Módulo"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           T="string">
+                    <MudSelectItem Value="@("Estudiantes")">Estudiantes</MudSelectItem>
+                    <MudSelectItem Value="@("Solicitudes")">Solicitudes</MudSelectItem>
+                    <MudSelectItem Value="@("Becas")">Becas</MudSelectItem>
+                    <MudSelectItem Value="@("Benefactores")">Benefactores</MudSelectItem>
+                    <MudSelectItem Value="@("Aportes")">Aportes</MudSelectItem>
+                    <MudSelectItem Value="@("Evaluaciones")">Evaluaciones</MudSelectItem>
+                    <MudSelectItem Value="@("VisitasFamiliares")">Visitas Familiares</MudSelectItem>
+                    <MudSelectItem Value="@("Renovaciones")">Renovaciones</MudSelectItem>
+                    <MudSelectItem Value="@("Seguimiento")">Seguimiento</MudSelectItem>
+                    <MudSelectItem Value="@("Usuarios")">Usuarios</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="3">
+                <MudSelect @bind-Value="filtroAccion"
+                           Label="Acción"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           T="string">
+                    <MudSelectItem Value="@("Crear")">Crear</MudSelectItem>
+                    <MudSelectItem Value="@("Editar")">Editar</MudSelectItem>
+                    <MudSelectItem Value="@("Eliminar")">Eliminar</MudSelectItem>
+                    <MudSelectItem Value="@("CambiarEstado")">Cambiar Estado</MudSelectItem>
+                    <MudSelectItem Value="@("CambiarPassword")">Cambiar Password</MudSelectItem>
+                    <MudSelectItem Value="@("AsignarRol")">Asignar Rol</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="2">
+                <MudButton Variant="Variant.Filled"
+                           Style="background-color:#1565C0; color:white;"
+                           OnClick="CargarLogs"
+                           StartIcon="@Icons.Material.Filled.FilterAlt">
+                    Filtrar
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCardContent>
+</MudCard>
+
+<!-- Tabla de logs -->
+<MudCard Elevation="2" Style="border-radius:12px;">
+    <MudCardContent Class="pa-0">
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-10">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (!logsFiltrados.Any())
+        {
+            <div class="text-center pa-10">
+                <MudIcon Icon="@Icons.Material.Filled.ManageSearch"
+                         Style="color:#90CAF9; font-size:4rem;" Class="mb-2" />
+                <MudText Typo="Typo.h6" Style="color:#546E7A;">
+                    No se encontraron registros de auditoría
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@logsFiltrados"
+                      Hover="true"
+                      Striped="true"
+                      Elevation="0"
+                      Dense="true">
+                <HeaderContent>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Fecha y Hora</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Usuario</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Módulo</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Acción</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Descripción</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Entidad</MudTh>
+                    <MudTh Style="color:#1565C0; font-weight:700;">Resultado</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudText Typo="Typo.caption" Style="color:#546E7A;">
+                            @context.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">
+                            @(context.NombreUsuario ?? "Sistema")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="background-color:#E3F2FD; color:#1565C0;">
+                            @context.Modulo
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@GetAccionStyle(context.Accion)">
+                            @context.Accion
+                        </MudChip>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.Descripcion ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">
+                            @(context.EntidadAfectada ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.caption" Style="color:#546E7A;">
+                            @(context.DireccionIP ?? "--")
+                        </MudText>
+                    </MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Style="@(context.Resultado == "Exitoso"
+                                     ? "background-color:#E8F5E9; color:#2E7D32;"
+                                     : "background-color:#FFEBEE; color:#C62828;")">
+                            @(context.Resultado ?? "Exitoso")
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <div class="d-flex justify-end pa-3">
+                <MudText Typo="Typo.caption" Style="color:#546E7A;">
+                    Mostrando @logsFiltrados.Count() de @logs.Count registros
+                </MudText>
+            </div>
+        }
+    </MudCardContent>
+</MudCard>
+
+@code {
+    private List<LogAuditoria> logs = new();
+    private string busqueda = string.Empty;
+    private string? filtroModulo;
+    private string? filtroAccion;
+    private bool cargando = true;
+
+    private IEnumerable<LogAuditoria> logsFiltrados => logs.Where(l =>
+        (string.IsNullOrWhiteSpace(busqueda) ||
+         (l.Descripcion?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false) ||
+         (l.EntidadAfectada?.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+        (string.IsNullOrWhiteSpace(filtroModulo) || l.Modulo == filtroModulo) &&
+        (string.IsNullOrWhiteSpace(filtroAccion) || l.Accion == filtroAccion));
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarLogs();
+    }
+
+    private async Task CargarLogs()
+    {
+        cargando = true;
+        try
+        {
+            var url = "api/Auditoria?pagina=1&tamano=200";
+
+            if (!string.IsNullOrWhiteSpace(filtroModulo))
+                url += $"&modulo={filtroModulo}";
+
+            if (!string.IsNullOrWhiteSpace(filtroAccion))
+                url += $"&accion={filtroAccion}";
+
+            var resultado = await Http.GetFromJsonAsync<List<LogAuditoria>>(url);
+            logs = resultado ?? new List<LogAuditoria>();
+        }
+        catch
+        {
+            logs = new List<LogAuditoria>();
+            Snackbar.Add("Error al cargar los logs de auditoría.", Severity.Error);
+        }
+        cargando = false;
+    }
+
+    private async Task LimpiarLogs()
+    {
+        try
+        {
+            var response = await Http.DeleteAsync("api/Auditoria/limpiar?diasAntiguedad=90");
+            if (response.IsSuccessStatusCode)
+            {
+                Snackbar.Add("Logs anteriores a 90 días eliminados correctamente.", Severity.Success);
+                await CargarLogs();
+            }
+            else
+            {
+                Snackbar.Add("Error al limpiar los logs.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error de conexión.", Severity.Error);
+        }
+    }
+
+    private string GetAccionStyle(string accion) => accion switch
+    {
+        "Crear" => "background-color:#E8F5E9; color:#2E7D32;",
+        "Editar" => "background-color:#FFF8E1; color:#F57C00;",
+        "Eliminar" => "background-color:#FFEBEE; color:#C62828;",
+        "CambiarEstado" => "background-color:#E3F2FD; color:#1565C0;",
+        "CambiarPassword" => "background-color:#F3E5F5; color:#6A1B9A;",
+        "AsignarRol" => "background-color:#E0F7FA; color:#00838F;",
+        "RemoverRol" => "background-color:#FBE9E7; color:#BF360C;",
+        _ => "background-color:#F5F5F5; color:#546E7A;"
+    };
+}

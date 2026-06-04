@@ -3,6 +3,7 @@
 @using ASEDUPH_V2_Web.Services
 @inject SolicitudBecaService SolicitudService
 @inject ISnackbar Snackbar
+@inject BecaService BecaService
 
 <PageTitle>Solicitudes de Beca - ASEDUPH</PageTitle>
 
@@ -145,11 +146,6 @@
                                        Size="Size.Small"
                                        OnClick="@(() => AbrirCambioEstado(context))"
                                        Title="Cambiar estado" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Cancel"
-                                       Style="color:#C62828;"
-                                       Size="Size.Small"
-                                       OnClick="@(() => CancelarSolicitud(context))"
-                                       Title="Cancelar" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -393,8 +389,26 @@
         mostrarFormulario = true;
     }
 
-    private void AbrirCambioEstado(SolicitudBeca solicitud)
+    private async Task AbrirCambioEstado(SolicitudBeca solicitud)
     {
+        try
+        {
+            var becas = await BecaService.GetTodasBecas();
+
+            var tieneBecaActiva = becas.Any(b =>
+                b.EstadoBeca == "Activa" &&
+                b.EstudianteId == solicitud.EstudianteId);
+
+            if (tieneBecaActiva)
+            {
+                Snackbar.Add(
+                    "Este estudiante tiene una beca activa. Primero cancele o finalice la beca.",
+                    Severity.Warning);
+                return;
+            }
+        }
+        catch { }
+
         solicitudSeleccionada = solicitud;
         nuevoEstado = solicitud.EstadoSolicitud;
         mostrarCambioEstado = true;
