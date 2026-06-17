@@ -76,6 +76,24 @@ else
         </MudItem>
     </MudGrid>
 
+    <!-- Tarjeta destacada: Total recaudado -->
+    <MudCard Elevation="3" Style="border-radius:12px; background:linear-gradient(135deg, #1565C0, #0288D1); margin-bottom:24px;">
+        <MudCardContent Class="pa-6">
+            <div class="d-flex justify-space-between align-center">
+                <div>
+                    <MudText Typo="Typo.subtitle1" Style="color:#E3F2FD;">
+                        Total Recaudado en Aportes
+                    </MudText>
+                    <MudText Typo="Typo.h3" Style="color:white; font-weight:700;">
+                        Q @totalAportado.ToString("N2")
+                    </MudText>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.VolunteerActivism"
+                         Style="color:rgba(255,255,255,0.5); font-size:5rem;" />
+            </div>
+        </MudCardContent>
+    </MudCard>
+
     <MudGrid>
         <!-- Solicitudes por estado (barras CSS) -->
         <MudItem xs="12" md="6">
@@ -150,6 +168,49 @@ else
             </MudCard>
         </MudItem>
 
+        <!-- Aportes por Benefactor (barras CSS) -->
+        <MudItem xs="12">
+            <MudCard Elevation="2" Style="border-radius:12px;">
+                <MudCardContent Class="pa-6">
+                    <MudText Typo="Typo.h6" Style="color:#1565C0; font-weight:600;" Class="mb-4">
+                        Aportes por Benefactor
+                    </MudText>
+                    @if (resumenAportes.Any())
+                    {
+                        @foreach (var item in resumenAportes)
+                        {
+                            <div class="mb-4">
+                                <div class="d-flex justify-space-between align-center mb-1">
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Style="background-color:#E3F2FD; color:#1565C0;
+                                                          width:32px; height:32px; font-size:0.85rem;"
+                                                   Class="mr-2">
+                                            @item.Nombre.Substring(0, 1).ToUpper()
+                                        </MudAvatar>
+                                        <MudText Typo="Typo.body2" Style="font-weight:600; color:#37474F;">
+                                            @item.Nombre
+                                        </MudText>
+                                    </div>
+                                    <MudText Typo="Typo.body2" Style="font-weight:700; color:#2E7D32;">
+                                        Q @item.Total.ToString("N2")
+                                    </MudText>
+                                </div>
+                                <div style="background-color:#ECEFF1; border-radius:8px; height:14px; width:100%; overflow:hidden;">
+                                    <div style="@($"background-color:#2E7D32; height:100%; width:{(int)item.Porcentaje}%; border-radius:8px; transition:width 0.5s;")"></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center pa-6">
+                            <MudText Style="color:#546E7A;">No hay aportes registrados</MudText>
+                        </div>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
         <!-- Tabla resumen de solicitudes -->
         <MudItem xs="12" md="6">
             <MudCard Elevation="2" Style="border-radius:12px;">
@@ -190,7 +251,7 @@ else
                         </FooterContent>
                     </MudTable>
                 </MudCardContent>
-            </MudCard>
+      </MudCard>
         </MudItem>
 
         <!-- Tabla resumen de becas -->
@@ -241,9 +302,11 @@ else
     private int totalSolicitudes;
     private int totalBecas;
     private int totalBenefactores;
+    private decimal totalAportado;
 
     private List<ResumenItem> resumenSolicitudes = new();
     private List<ResumenItem> resumenBecas = new();
+    private List<ResumenAporte> resumenAportes = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -259,11 +322,13 @@ else
         var solicitudes = await SolicitudService.GetSolicitudes();
         var becas = await BecaService.GetBecas();
         var benefactores = await BenefactorService.GetBenefactores();
+        var aportes = await BenefactorService.GetAportes();
 
         totalEstudiantes = estudiantes.Count;
         totalSolicitudes = solicitudes.Count;
         totalBecas = becas.Count;
         totalBenefactores = benefactores.Count;
+        totalAportado = aportes.Sum(a => a.Monto);
 
         // Solicitudes por estado
         var datosSolicitudes = solicitudes
@@ -289,6 +354,24 @@ else
             Porcentaje = totalBecas > 0 ? (kv.Value * 100.0 / totalBecas) : 0
         }).OrderByDescending(r => r.Cantidad).ToList();
 
+        // Aportes por benefactor
+        var montoMaximo = aportes
+            .GroupBy(a => a.Benefactor?.NombreCompleto ?? "Desconocido")
+            .Select(g => g.Sum(a => a.Monto))
+            .DefaultIfEmpty(0)
+            .Max();
+
+        resumenAportes = aportes
+            .GroupBy(a => a.Benefactor?.NombreCompleto ?? "Desconocido")
+            .Select(g => new ResumenAporte
+            {
+                Nombre = g.Key,
+                Total = g.Sum(a => a.Monto),
+                Porcentaje = montoMaximo > 0 ? (double)(g.Sum(a => a.Monto) * 100 / montoMaximo) : 0
+            })
+            .OrderByDescending(r => r.Total)
+            .ToList();
+
         cargando = false;
     }
 
@@ -306,6 +389,13 @@ else
     {
         public string Estado { get; set; } = string.Empty;
         public int Cantidad { get; set; }
+        public double Porcentaje { get; set; }
+    }
+
+    private class ResumenAporte
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public decimal Total { get; set; }
         public double Porcentaje { get; set; }
     }
 }

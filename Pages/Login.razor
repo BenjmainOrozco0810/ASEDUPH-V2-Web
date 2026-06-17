@@ -4,68 +4,199 @@
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
-    <MudCard Elevation="4">
-        <MudCardContent>
-            <div class="d-flex justify-center mb-4">
-                <div class="text-center">
-                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="mb-1">
-                        <b>ASEDUPH</b>
-                    </MudText>
-                    <MudText Typo="Typo.subtitle1" Class="mb-4">
-                        Sistema de Gestión de Becas
-                    </MudText>
+<div class="login-wrapper">
+    <div class="login-container">
+
+        <!-- Panel izquierdo: branding azul -->
+        <div class="login-panel-izquierdo">
+            <div class="login-branding">
+                <MudIcon Icon="@Icons.Material.Filled.School"
+                         Style="font-size:5rem; color:white; margin-bottom:1rem;" />
+                <h1 class="login-titulo">ASEDUPH</h1>
+                <p class="login-subtitulo">Sistema de Gestión de Becas</p>
+                <div class="login-divider"></div>
+                <p class="login-mensaje">
+                    Transformando vidas a través de la educación.
+                </p>
+            </div>
+            <div class="login-footer-izq">
+                Asociación para la Educación Padre José Halpin
+            </div>
+        </div>
+
+        <!-- Panel derecho: formulario -->
+        <div class="login-panel-derecho">
+            <div class="login-form">
+                <MudText Typo="Typo.h5" Style="color:#1565C0; font-weight:700; margin-bottom:0.25rem;">
+                    Bienvenido
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color:#546E7A; margin-bottom:2rem;">
+                    Ingresa tus credenciales para acceder al sistema
+                </MudText>
+
+                @if (!string.IsNullOrEmpty(errorMensaje))
+                {
+                    <MudAlert Severity="Severity.Error" Class="mb-4" Dense="true">@errorMensaje</MudAlert>
+                }
+
+                <MudTextField @bind-Value="loginRequest.Username"
+                              Label="Usuario"
+                              Variant="Variant.Outlined"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              AdornmentColor="Color.Primary"
+                              Class="mb-4"
+                              Disabled="@cargando"
+                              OnKeyDown="OnKeyDown" />
+
+                <MudTextField @bind-Value="loginRequest.Password"
+                              Label="Contraseña"
+                              Variant="Variant.Outlined"
+                              InputType="@passwordTipo"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@passwordIcono"
+                              OnAdornmentClick="TogglePassword"
+                              Class="mb-6"
+                              Disabled="@cargando"
+                              OnKeyDown="OnKeyDown" />
+
+                <MudButton Variant="Variant.Filled"
+                           Style="background-color:#1565C0; color:white; width:100%; height:48px;"
+                           Size="Size.Large"
+                           OnClick="IniciarSesion"
+                           Disabled="@cargando">
+                    @if (cargando)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                        <span>Iniciando sesión...</span>
+                    }
+                    else
+                    {
+                        <span>Iniciar Sesión</span>
+                    }
+                </MudButton>
+
+                <div class="login-ayuda">
+                    <MudIcon Icon="@Icons.Material.Filled.Lock"
+                             Style="font-size:0.9rem; color:#90A4AE; margin-right:0.4rem;" />
+                    <span>Acceso exclusivo para personal autorizado</span>
                 </div>
             </div>
+        </div>
 
-            @if (!string.IsNullOrEmpty(errorMensaje))
-            {
-                <MudAlert Severity="Severity.Error" Class="mb-4">@errorMensaje</MudAlert>
-            }
+    </div>
+</div>
 
-            <MudTextField @bind-Value="loginRequest.Username"
-                          Label="Usuario"
-                          Variant="Variant.Outlined"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Person"
-                          Class="mb-4"
-                          Disabled="@cargando" />
+<style>
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%);
+        padding: 1rem;
+    }
 
-            <MudTextField @bind-Value="loginRequest.Password"
-                          Label="Contraseña"
-                          Variant="Variant.Outlined"
-                          InputType="@passwordTipo"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@passwordIcono"
-                          OnAdornmentClick="TogglePassword"
-                          Class="mb-6"
-                          Disabled="@cargando" />
+    .login-container {
+        display: flex;
+        width: 100%;
+        max-width: 900px;
+        min-height: 540px;
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(21, 101, 192, 0.25);
+    }
 
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       
-                       Size="Size.Large"
-                       OnClick="IniciarSesion"
-                       Disabled="@cargando">
-                @if (cargando)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>Iniciando sesión...</span>
-                }
-                else
-                {
-                    <span>Iniciar Sesión</span>
-                }
-            </MudButton>
-        </MudCardContent>
+    /* Panel izquierdo */
+    .login-panel-izquierdo {
+        flex: 1;
+        background: linear-gradient(150deg, #1565C0 0%, #0D47A1 60%, #0277BD 100%);
+        padding: 3rem 2.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
 
-        <MudCardActions Class="justify-center pb-4">
-            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                Asociación para la Educación Padre José Halpin
-            </MudText>
-        </MudCardActions>
-    </MudCard>
-</MudContainer>
+    .login-branding {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        margin-top: 2rem;
+    }
+
+    .login-titulo {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: 2px;
+    }
+
+    .login-subtitulo {
+        color: #BBDEFB;
+        font-size: 1rem;
+        margin-top: 0.25rem;
+        font-weight: 400;
+    }
+
+    .login-divider {
+        width: 60px;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 2px;
+        margin: 1.5rem 0;
+    }
+
+    .login-mensaje {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        max-width: 280px;
+    }
+
+    .login-footer-izq {
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.8rem;
+        text-align: center;
+    }
+
+    /* Panel derecho */
+    .login-panel-derecho {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 2.5rem;
+    }
+
+    .login-form {
+        width: 100%;
+        max-width: 340px;
+    }
+
+    .login-ayuda {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1.5rem;
+        color: #90A4AE;
+        font-size: 0.8rem;
+    }
+
+    /* Responsivo: en móvil oculta el panel azul */
+    @@media (max-width: 700px) {
+        .login-panel-izquierdo {
+            display: none;
+        }
+        .login-container {
+            max-width: 420px;
+            min-height: auto;
+        }
+    }
+</style>
 
 @code {
     private LoginRequest loginRequest = new();
@@ -80,6 +211,14 @@
         if (AuthService.EstaAutenticado)
         {
             Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await IniciarSesion();
         }
     }
 

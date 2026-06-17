@@ -152,23 +152,51 @@
     </TitleContent>
     <DialogContent>
         <MudGrid>
-            <MudItem xs="12" sm="6">
-                <MudSelect @bind-Value="becaForm.EstudianteId"
-                           Label="Estudiante"
-                           Variant="Variant.Outlined"
-                           
-                           Required="true">
-                    @foreach (var e in estudiantes)
+            @if (esNuevo)
+            {
+                <!-- Al crear: se elige una solicitud APROBADA -->
+                <MudItem xs="12">
+                    @if (!solicitudesAprobadas.Any())
                     {
-                        <MudSelectItem Value="@e.EstudianteId">@e.NombreCompleto</MudSelectItem>
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            No hay solicitudes aprobadas pendientes de asignar beca.
+                            Primero apruebe una solicitud en el módulo de Solicitudes.
+                        </MudAlert>
                     }
-                </MudSelect>
-            </MudItem>
+                    else
+                    {
+                        <MudSelect T="int"
+                                   Value="solicitudSeleccionadaId"
+                                   ValueChanged="OnSolicitudSeleccionada"
+                                   Label="Solicitud aprobada"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   HelperText="La beca tomará los datos del estudiante de esta solicitud">
+                            @foreach (var s in solicitudesAprobadas)
+                            {
+                                <MudSelectItem Value="@s.SolicitudBecaId">
+                                    @($"#{s.SolicitudBecaId} — {s.Estudiante?.NombreCompleto} ({s.NivelEducativo} {s.GradoSolicitado}, {s.AnioSolicitud})")
+                                </MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudItem>
+            }
+            else
+            {
+                <!-- Al editar: se muestra el estudiante (solo lectura) -->
+                <MudItem xs="12">
+                    <MudTextField Value="@nombreEstudianteEdit"
+                                  Label="Estudiante"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true" />
+                </MudItem>
+            }
+
             <MudItem xs="12" sm="6">
                 <MudSelect @bind-Value="becaForm.NivelEducativo"
                            Label="Nivel educativo"
-                           Variant="Variant.Outlined"
-                           >
+                           Variant="Variant.Outlined">
                     <MudSelectItem Value="@("Preprimaria")">Preprimaria</MudSelectItem>
                     <MudSelectItem Value="@("Primaria")">Primaria</MudSelectItem>
                     <MudSelectItem Value="@("Básicos")">Básicos</MudSelectItem>
@@ -180,7 +208,6 @@
                 <MudTextField @bind-Value="becaForm.TipoBeca"
                               Label="Tipo de beca"
                               Variant="Variant.Outlined"
-                              
                               Placeholder="Ej: Beca completa, Beca parcial..." />
             </MudItem>
             <MudItem xs="12" sm="6">
@@ -188,38 +215,33 @@
                                  Label="Monto aprobado (Q)"
                                  Variant="Variant.Outlined"
                                  Min="0"
-                                 T="decimal?"
-                                  />
+                                 T="decimal?" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="becaForm.AnioInicio"
                                  Label="Año de inicio"
                                  Variant="Variant.Outlined"
                                  Min="2000" Max="2100"
-                                 T="int"
-                                  />
+                                 T="int" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudNumericField @bind-Value="becaForm.AnioFin"
                                  Label="Año de fin (opcional)"
                                  Variant="Variant.Outlined"
                                  Min="2000" Max="2100"
-                                 T="int?"
-                                  />
+                                 T="int?" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudDatePicker @bind-Date="becaForm.FechaAprobacion"
                                Label="Fecha de aprobación"
                                Variant="Variant.Outlined"
-                               DateFormat="dd/MM/yyyy"
-                                />
+                               DateFormat="dd/MM/yyyy" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="becaForm.Observaciones"
                               Label="Observaciones"
                               Variant="Variant.Outlined"
-                              Lines="2"
-                               />
+                              Lines="2" />
             </MudItem>
         </MudGrid>
     </DialogContent>
@@ -259,8 +281,7 @@
         </MudText>
         <MudSelect @bind-Value="nuevoEstado"
                    Label="Nuevo estado"
-                   Variant="Variant.Outlined"
-                   >
+                   Variant="Variant.Outlined">
             <MudSelectItem Value="@("Activa")">Activa</MudSelectItem>
             <MudSelectItem Value="@("Finalizada")">Finalizada</MudSelectItem>
             <MudSelectItem Value="@("Suspendida")">Suspendida</MudSelectItem>
@@ -283,7 +304,7 @@
 
 @code {
     private List<Beca> becas = new();
-    private List<Estudiante> estudiantes = new();
+    private List<SolicitudBeca> solicitudesAprobadas = new();
     private string busqueda = string.Empty;
     private bool cargando = true;
     private bool mostrarTodas = false;
@@ -294,6 +315,8 @@
     private Beca becaForm = new();
     private Beca? becaSeleccionada;
     private string nuevoEstado = string.Empty;
+    private int solicitudSeleccionadaId = 0;
+    private string nombreEstudianteEdit = string.Empty;
 
     private DialogOptions dialogOptions = new()
     {
@@ -324,7 +347,6 @@
         becas = mostrarTodas
             ? await BecaService.GetTodasBecas()
             : await BecaService.GetBecas();
-        estudiantes = await BecaService.GetEstudiantes();
         cargando = false;
     }
 
@@ -334,21 +356,39 @@
         await CargarDatos();
     }
 
-    private void AbrirFormularioNuevo()
+    private async Task AbrirFormularioNuevo()
     {
         esNuevo = true;
+        solicitudSeleccionadaId = 0;
         becaForm = new Beca
         {
             AnioInicio = DateTime.Now.Year,
             EstadoBeca = "Activa",
             FechaAprobacion = DateTime.Now
         };
+        // Cargar solicitudes aprobadas sin beca
+        solicitudesAprobadas = await BecaService.GetSolicitudesAprobadasSinBeca();
         mostrarFormulario = true;
+    }
+
+    // Cuando se elige una solicitud, la beca hereda sus datos
+    private void OnSolicitudSeleccionada(int solicitudId)
+    {
+        solicitudSeleccionadaId = solicitudId;
+        var solicitud = solicitudesAprobadas.FirstOrDefault(s => s.SolicitudBecaId == solicitudId);
+        if (solicitud != null)
+        {
+            becaForm.SolicitudBecaId = solicitud.SolicitudBecaId;
+            becaForm.EstudianteId = solicitud.EstudianteId;
+            becaForm.NivelEducativo = solicitud.NivelEducativo;
+            becaForm.AnioInicio = solicitud.AnioSolicitud > 0 ? solicitud.AnioSolicitud : DateTime.Now.Year;
+        }
     }
 
     private void AbrirFormularioEditar(Beca beca)
     {
         esNuevo = false;
+        nombreEstudianteEdit = beca.Estudiante?.NombreCompleto ?? "Sin nombre";
         becaForm = new Beca
         {
             BecaId = beca.BecaId,
@@ -377,13 +417,15 @@
     {
         mostrarFormulario = false;
         becaForm = new();
+        solicitudSeleccionadaId = 0;
     }
 
     private async Task GuardarBeca()
     {
-        if (becaForm.EstudianteId == 0)
+        // Al crear, debe haber una solicitud seleccionada
+        if (esNuevo && becaForm.EstudianteId == 0)
         {
-            Snackbar.Add("Debe seleccionar un estudiante.", Severity.Warning);
+            Snackbar.Add("Debe seleccionar una solicitud aprobada.", Severity.Warning);
             return;
         }
 

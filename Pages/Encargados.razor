@@ -1,6 +1,7 @@
 @page "/encargados"
 @using ASEDUPH_V2_Web.Models
 @using ASEDUPH_V2_Web.Services
+@using System.Text.RegularExpressions
 @inject EncargadoService EncargadoService
 @inject ISnackbar Snackbar
 
@@ -198,23 +199,37 @@
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.DPI"
                               Label="No. DPI"
-                              Variant="Variant.Outlined" />
+                              Variant="Variant.Outlined"
+                              MaxLength="13"
+                              Validation="@(new Func<string, string?>(ValidarDPI))"
+                              HelperText="13 dígitos numéricos"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.TelefonoDomiciliar"
                               Label="Teléfono domiciliar"
-                              Variant="Variant.Outlined" />
+                              Variant="Variant.Outlined"
+                              MaxLength="8"
+                              Validation="@(new Func<string, string?>(ValidarTelefono))"
+                              HelperText="8 dígitos"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.TelefonoCelular"
                               Label="Teléfono celular"
-                              Variant="Variant.Outlined" />
+                              Variant="Variant.Outlined"
+                              MaxLength="8"
+                              Validation="@(new Func<string, string?>(ValidarTelefono))"
+                              HelperText="8 dígitos"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.CorreoElectronico"
                               Label="Correo electrónico"
                               Variant="Variant.Outlined"
-                              InputType="InputType.Email" />
+                              InputType="InputType.Email"
+                              Validation="@(new Func<string, string?>(ValidarCorreo))"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.Ocupacion"
@@ -229,7 +244,11 @@
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="encargadoForm.TelefonoTrabajo"
                               Label="Teléfono de trabajo"
-                              Variant="Variant.Outlined" />
+                              Variant="Variant.Outlined"
+                              MaxLength="8"
+                              Validation="@(new Func<string, string?>(ValidarTelefono))"
+                              HelperText="8 dígitos"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="encargadoForm.Direccion"
@@ -290,6 +309,31 @@
         FullWidth = true,
         CloseOnEscapeKey = true
     };
+
+    // ── Validaciones (Guatemala) ──────────────────────────────────────
+    private string? ValidarDPI(string dpi)
+    {
+        if (string.IsNullOrWhiteSpace(dpi)) return null; // opcional
+        if (!Regex.IsMatch(dpi, @"^\d{13}$"))
+            return "El DPI debe tener exactamente 13 dígitos numéricos.";
+        return null;
+    }
+
+    private string? ValidarTelefono(string telefono)
+    {
+        if (string.IsNullOrWhiteSpace(telefono)) return null; // opcional
+        if (!Regex.IsMatch(telefono, @"^\d{8}$"))
+            return "El teléfono debe tener 8 dígitos numéricos.";
+        return null;
+    }
+
+    private string? ValidarCorreo(string correo)
+    {
+        if (string.IsNullOrWhiteSpace(correo)) return null; // opcional
+        if (!Regex.IsMatch(correo, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            return "Ingrese un correo electrónico válido.";
+        return null;
+    }
 
     private IEnumerable<Encargado> encargadosFiltrados => encargados.Where(e =>
         (string.IsNullOrWhiteSpace(busqueda) ||
@@ -359,6 +403,33 @@
         if (encargadoForm.EstudianteId == 0)
         {
             Snackbar.Add("Debe seleccionar un estudiante.", Severity.Warning);
+            return;
+        }
+
+        // ── Validaciones de formato antes de guardar ──────────────────
+        if (ValidarDPI(encargadoForm.DPI ?? "") is string errDpi)
+        {
+            Snackbar.Add(errDpi, Severity.Warning);
+            return;
+        }
+        if (ValidarTelefono(encargadoForm.TelefonoDomiciliar ?? "") is string errTel1)
+        {
+            Snackbar.Add($"Teléfono domiciliar: {errTel1}", Severity.Warning);
+            return;
+        }
+        if (ValidarTelefono(encargadoForm.TelefonoCelular ?? "") is string errTel2)
+        {
+            Snackbar.Add($"Teléfono celular: {errTel2}", Severity.Warning);
+            return;
+        }
+        if (ValidarTelefono(encargadoForm.TelefonoTrabajo ?? "") is string errTel3)
+        {
+            Snackbar.Add($"Teléfono de trabajo: {errTel3}", Severity.Warning);
+            return;
+        }
+        if (ValidarCorreo(encargadoForm.CorreoElectronico ?? "") is string errCorreo)
+        {
+            Snackbar.Add(errCorreo, Severity.Warning);
             return;
         }
 

@@ -32,6 +32,18 @@ namespace ASEDUPH_V2_Web.Services
             catch { return new List<Beca>(); }
         }
 
+        // Trae las solicitudes Aprobadas que aún NO tienen beca asignada
+        public async Task<List<SolicitudBeca>> GetSolicitudesAprobadasSinBeca()
+        {
+            try
+            {
+                var resultado = await _http.GetFromJsonAsync<List<SolicitudBeca>>(
+                    "api/SolicitudesBeca/aprobadas-sin-beca");
+                return resultado ?? new List<SolicitudBeca>();
+            }
+            catch { return new List<SolicitudBeca>(); }
+        }
+
         public async Task<List<SolicitudBeca>> GetSolicitudesAprobadas()
         {
             try
