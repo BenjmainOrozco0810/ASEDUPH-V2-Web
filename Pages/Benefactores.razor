@@ -1,6 +1,7 @@
 @page "/benefactores"
 @using ASEDUPH_V2_Web.Models
 @using ASEDUPH_V2_Web.Services
+@using System.Text.RegularExpressions
 @inject BenefactorService BenefactorService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -160,13 +161,19 @@ else
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="benefactorForm.Telefono"
                               Label="Teléfono"
-                              Variant="Variant.Outlined" />
+                              Variant="Variant.Outlined"
+                              MaxLength="8"
+                              Validation="@(new Func<string, string?>(ValidarTelefono))"
+                              HelperText="8 dígitos"
+                              Immediate="true" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="benefactorForm.CorreoElectronico"
                               Label="Correo electrónico"
                               Variant="Variant.Outlined"
-                              InputType="InputType.Email" />
+                              InputType="InputType.Email"
+                              Validation="@(new Func<string, string?>(ValidarCorreo))"
+                              Immediate="true" />
             </MudItem>
             @if (!esNuevo)
             {
@@ -226,6 +233,23 @@ else
         CloseOnEscapeKey = true
     };
 
+    // ── Validaciones (Guatemala) ──────────────────────────────────────
+    private string? ValidarTelefono(string telefono)
+    {
+        if (string.IsNullOrWhiteSpace(telefono)) return null; // opcional
+        if (!Regex.IsMatch(telefono, @"^\d{8}$"))
+            return "El teléfono debe tener 8 dígitos numéricos.";
+        return null;
+    }
+
+    private string? ValidarCorreo(string correo)
+    {
+        if (string.IsNullOrWhiteSpace(correo)) return null; // opcional
+        if (!Regex.IsMatch(correo, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            return "Ingrese un correo electrónico válido.";
+        return null;
+    }
+
     private IEnumerable<Benefactor> benefactoresFiltrados => benefactores.Where(b =>
         string.IsNullOrWhiteSpace(busqueda) ||
         b.NombreCompleto.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
@@ -278,6 +302,18 @@ else
         if (string.IsNullOrWhiteSpace(benefactorForm.NombreCompleto))
         {
             Snackbar.Add("El nombre del benefactor es requerido.", Severity.Warning);
+            return;
+        }
+
+        // ── Validaciones de formato antes de guardar ──────────────────
+        if (ValidarTelefono(benefactorForm.Telefono ?? "") is string errTel)
+        {
+            Snackbar.Add(errTel, Severity.Warning);
+            return;
+        }
+        if (ValidarCorreo(benefactorForm.CorreoElectronico ?? "") is string errCorreo)
+        {
+            Snackbar.Add(errCorreo, Severity.Warning);
             return;
         }
 

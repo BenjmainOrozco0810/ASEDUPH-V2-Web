@@ -202,10 +202,18 @@
                                />
             </MudItem>
             <MudItem xs="12" sm="6">
-                <MudTextField @bind-Value="visitaForm.ParentescoEntrevistado"
-                              Label="Parentesco con el estudiante"
-                              Variant="Variant.Outlined"
-                               />
+                <MudSelect @bind-Value="visitaForm.ParentescoEntrevistado"
+                           Label="Parentesco con el estudiante"
+                           Variant="Variant.Outlined">
+                    <MudSelectItem Value="@("Madre")">Madre</MudSelectItem>
+                    <MudSelectItem Value="@("Padre")">Padre</MudSelectItem>
+                    <MudSelectItem Value="@("Abuelo/a")">Abuelo/a</MudSelectItem>
+                    <MudSelectItem Value="@("Tío/a")">Tío/a</MudSelectItem>
+                    <MudSelectItem Value="@("Hermano/a")">Hermano/a</MudSelectItem>
+                    <MudSelectItem Value="@("Tutor/a legal")">Tutor/a legal</MudSelectItem>
+                    <MudSelectItem Value="@("Vecino/a")">Vecino/a</MudSelectItem>
+                    <MudSelectItem Value="@("Otro")">Otro</MudSelectItem>
+                </MudSelect>
             </MudItem>
 
             <!-- Sección 3: Observaciones -->
