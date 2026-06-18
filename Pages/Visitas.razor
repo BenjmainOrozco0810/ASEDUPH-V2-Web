@@ -2,6 +2,7 @@
 @using ASEDUPH_V2_Web.Models
 @using ASEDUPH_V2_Web.Services
 @inject VisitaFamiliarService VisitaService
+@inject AuthService AuthService
 @inject ISnackbar Snackbar
 
 <PageTitle>Visitas Familiares - ASEDUPH</PageTitle>
@@ -248,13 +249,19 @@
                 <MudTextField @bind-Value="visitaForm.RealizadaPor"
                               Label="Realizada por"
                               Variant="Variant.Outlined"
-                               />
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Person"
+                              HelperText="Usuario que realiza la visita" />
             </MudItem>
             <MudItem xs="12" sm="6">
                 <MudTextField @bind-Value="visitaForm.Firma"
                               Label="Firma"
                               Variant="Variant.Outlined"
-                               />
+                              ReadOnly="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Draw"
+                              HelperText="Firma del usuario responsable" />
             </MudItem>
             <MudItem xs="12">
                 <MudTextField @bind-Value="visitaForm.ObservacionesFinales"
@@ -327,9 +334,12 @@
     private void AbrirFormularioNuevo()
     {
         esNuevo = true;
+        var usuario = AuthService.UsuarioActual?.NombreCompleto ?? "Usuario del sistema";
         visitaForm = new VisitaFamiliar
         {
-            FechaVisita = DateTime.Now
+            FechaVisita = DateTime.Now,
+            RealizadaPor = usuario,
+            Firma = usuario
         };
         mostrarFormulario = true;
     }
